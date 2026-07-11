@@ -1,0 +1,1023 @@
+﻿@{
+    ViewData["Title"] = "My Sitter Profile";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+
+    body {
+        background: #f7f8fc;
+    }
+
+    .profile-card {
+        background: #fff;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 2px 15px rgba(0,0,0,.08);
+    }
+
+    .profile-img {
+        width: 170px;
+        height: 170px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 5px solid #e9ecef;
+        cursor: pointer;
+        transition: .3s;
+    }
+
+        .profile-img:hover {
+            transform: scale(1.03);
+        }
+
+    .section-title {
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+
+    .card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,.08);
+    }
+</style>
+
+<h3 class="mb-4">My Sitter Profile</h3>
+
+<div id="msg"></div>
+
+<div class="profile-card">
+
+    <div class="text-center mb-4">
+
+        <label for="image">
+
+            <img id="profileImage"
+                 src="/images/default-user.png"
+                 class="profile-img" />
+
+        </label>
+
+        <input type="file"
+               id="image"
+               accept="image/*"
+               hidden />
+
+        <div class="mt-2 text-muted">
+            Click the picture to change profile photo
+        </div>
+
+    </div>
+
+
+    <h5 class="section-title">
+        Personal Information
+    </h5>
+
+    <div class="row">
+
+        <div class="col-md-6 mb-3">
+
+            <label>Full Name</label>
+
+            <input id="fullName"
+                   class="form-control">
+
+        </div>
+
+        <div class="col-md-6 mb-3">
+
+            <label>Email</label>
+
+            <input id="email"
+                   class="form-control">
+
+        </div>
+
+        <div class="col-md-6 mb-3">
+
+            <label>Mobile Number</label>
+
+            <input id="mobile"
+                   class="form-control">
+
+        </div>
+
+        <div class="col-md-6 mb-3">
+
+            <label>NID Number</label>
+
+            <input id="nid"
+                   class="form-control">
+
+        </div>
+
+        <div class="col-md-6 mb-3">
+
+            <label>Gender</label>
+
+            <select id="gender"
+                    class="form-select">
+
+                <option value="">Select Gender</option>
+
+                <option>Male</option>
+
+                <option>Female</option>
+
+            </select>
+
+        </div>
+
+        <div class="col-md-6 mb-3">
+
+            <label>Date of Birth</label>
+
+            <input type="date"
+                   id="dob"
+                   class="form-control">
+
+        </div>
+
+        <div class="col-12 mb-3">
+
+            <label>Address</label>
+
+            <textarea id="address"
+                      rows="2"
+                      class="form-control"></textarea>
+
+        </div>
+
+    </div>
+
+    <hr />
+
+    <h5 class="section-title">
+        Professional Information
+    </h5>
+
+    <div class="mb-3">
+
+        <label>Skills (Comma Separated)</label>
+
+        <input id="skills"
+               class="form-control"
+               placeholder="Cooking, Child Care, First Aid">
+
+    </div>
+
+    <div class="mb-3">
+
+        <label>Skills Description</label>
+
+        <textarea id="skillsText"
+                  rows="3"
+                  class="form-control"></textarea>
+
+    </div>
+
+ 
+
+    <div class="row">
+
+        <div class="col-md-4 mb-3">
+
+            <label>Experience (Years)</label>
+
+            <input type="number"
+                   id="exp"
+                   class="form-control">
+
+        </div>
+
+        <div class="col-md-4 mb-3">
+
+            <label>Hourly Rate</label>
+
+            <input type="number"
+                   id="rate"
+                   class="form-control">
+
+        </div>
+
+        <div class="col-md-4 mb-3">
+
+            <label>Available Location</label>
+
+            <input id="loc"
+                   class="form-control">
+
+        </div>
+
+    </div>
+
+    <div class="text-end">
+
+        <button id="btnSave"
+                class="btn btn-success px-4">
+
+            Save Profile
+
+        </button>
+
+    </div>
+
+</div>
+
+
+<div class="row mt-4">
+
+    <div class="col-md-6">
+
+        <div class="card p-3">
+
+            <h5>
+                My Skills
+            </h5>
+
+            <ul id="skillsList"></ul>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-6">
+
+        <div class="card p-3">
+
+            <h5>
+                My Availability
+            </h5>
+
+            <div id="avList"></div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+@section Scripts {
+    <script>
+
+        // ================= IMAGE PREVIEW =================
+
+        $("#profileImage").click(function () {
+            $("#image").click();
+        });
+
+        $("#image").change(function () {
+
+            var file = this.files[0];
+
+            if (file) {
+
+                var reader = new FileReader();
+
+                reader.onload = function (e) {
+                    $("#profileImage").attr("src", e.target.result);
+                }
+
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // ================= TOKEN =================
+
+        function getToken() {
+            return (localStorage.getItem("jwt_token") || "").replace(/^"|"$/g, "");
+        }
+
+        function showOk(msg) {
+            $("#msg").html(`<div class="alert alert-success">${msg}</div>`);
+        }
+
+        function showErr(msg) {
+            $("#msg").html(`<div class="alert alert-danger">${msg}</div>`);
+        }
+
+        function formatDay(d) {
+            if (d == null) return "";
+            const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+            return days[d];
+        }
+
+        function formatTime(t) {
+            if (!t) return "";
+            return t.substring(0,5);
+        }
+
+        // ================= LOAD PROFILE =================
+
+        function loadMyProfile() {
+
+            $.ajax({
+                url: "/api/SitterProfile/me/profile",
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${getToken()}`
+                }
+            })
+            .done(function (p) {
+
+                if (!p) return;
+
+                if (p.photoUrl) {
+                    $("#profileImage").attr("src", p.photoUrl);
+                }
+
+        // User Information
+        $("#fullName").val(p.fullName || "");
+        $("#email").val(p.email || "");
+        $("#mobile").val(p.mobileNo || "");
+
+        $("#nid").val(p.nid || "");
+        $("#gender").val(p.gender || "");
+        $("#dob").val(p.dateOfBirth ? p.dateOfBirth.substring(0,10) : "");
+        $("#address").val(p.address || "");
+
+        // Profile Information
+        $("#skillsText").val(p.skillsText || "");
+        $("#skills").val((p.skills || []).join(", "));
+        $("#exp").val(p.experienceYears || "");
+        $("#rate").val(p.hourlyRate || "");
+        $("#loc").val(p.locationText || "");
+
+                // Skill List
+                $("#skillsList").empty();
+
+                if (p.skills) {
+
+                    p.skills.forEach(function (s) {
+                        $("#skillsList").append(`<li>${s}</li>`);
+                    });
+
+                }
+
+                // Availability
+
+                if (!p.availabilities || p.availabilities.length == 0) {
+
+                    $("#avList").html("<p>No Availability</p>");
+                }
+                else {
+
+                    var html = `<table class="table table-bordered">
+                            <thead>
+                            <tr>
+                            <th>Day</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            </tr>
+                            </thead><tbody>`;
+
+                    p.availabilities.forEach(function (a) {
+
+                        html += `
+                        <tr>
+                            <td>${formatDay(a.day)}</td>
+                            <td>${a.date ? a.date.substring(0,10) : ""}</td>
+                            <td>${formatTime(a.startTime)} - ${formatTime(a.endTime)}</td>
+                            <td>${a.isAvailable ? "Available" : "Unavailable"}</td>
+                        </tr>`;
+                    });
+
+                    html += "</tbody></table>";
+
+                    $("#avList").html(html);
+
+                }
+
+            })
+            .fail(function () {
+                showErr("Load Failed");
+            });
+
+        }
+
+        // ================= SAVE PROFILE =================
+
+        $("#btnSave").click(function () {
+
+            var formData = new FormData();
+
+                    // User Information
+        formData.append("FullName", $("#fullName").val());
+        formData.append("Email", $("#email").val());
+        formData.append("MobileNo", $("#mobile").val());
+
+        formData.append("Nid", $("#nid").val());
+        formData.append("Gender", $("#gender").val());
+        formData.append("DateOfBirth", $("#dob").val());
+        formData.append("Address", $("#address").val());
+
+        // Profile Information
+        formData.append("SkillsText", $("#skillsText").val());
+        formData.append("ExperienceYears", $("#exp").val());
+        formData.append("HourlyRate", $("#rate").val());
+        formData.append("LocationText", $("#loc").val());
+
+            var skills = $("#skills").val().split(",");
+
+            skills.forEach(function (s) {
+
+                if (s.trim() != "")
+                    formData.append("Skills", s.trim());
+
+            });
+
+            var file = $("#image")[0].files[0];
+
+            if (file) {
+                formData.append("Image", file);
+            }
+
+            $.ajax({
+
+                url: "/api/SitterProfile",
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${getToken()}`
+                },
+                data: formData,
+                processData: false,
+                contentType: false
+
+            })
+                   .done(function (r) {
+
+            Swal.fire({
+                icon: "success",
+                title: "Profile Updated",
+                text: " saved successfully.",
+                timer: 1800,
+                showConfirmButton: false
+            });
+
+            loadMyProfile();
+
+        })
+            .fail(function (xhr) {
+
+                showErr(xhr.responseText);
+
+            });
+
+        });
+
+        // ================= PAGE LOAD =================
+
+        $(document).ready(function () {
+
+            loadMyProfile();
+
+        });
+
+    </script>
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@* @{
+    ViewData["Title"] = "My Sitter Profile";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .row{
+       display:flex;
+        }
+</style>
+
+
+<h3>My Profile</h3>
+
+
+
+<div class="mb-3">
+    <img id="profileImage"
+         src="/images/default-user.png"
+         width="150"
+         class="img-thumbnail" />
+</div>
+
+
+<div id="msg"></div>
+
+<div class="card p-3 mb-3">
+
+
+    <div class="mb-2">
+        <label>Profile Image</label>
+        <input type="file" id="image" class="form-control" accept="image/*" />
+    </div>
+
+    <div class="mb-2">
+        <img id="preview" src="" width="150" class="img-thumbnail d-none" />
+    </div>
+
+
+    <div class="mb-2">
+        <label>Skills Description</label>
+        <input id="skillsText" class="form-control" />
+    </div>
+    <div class="mb-2">
+        <label>Skills List (comma)</label>
+        <input id="skills" class="form-control" placeholder="cooking, first aid" />
+    </div>
+    <div class="mb-2">
+        <label>Experience Years</label>
+        <input id="exp" type="number" class="form-control" />
+    </div>
+    <div class="mb-2">
+        <label>Hourly Rate</label>
+        <input id="rate" type="number" class="form-control" />
+    </div>
+    <div class="mb-2">
+        <label>Available Location</label>
+        <input id="loc" class="form-control" />
+    </div>
+    <button id="btnSave" class="btn btn-success">Save</button>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card p-3">
+            <h5>My Skills List</h5>
+            <ul id="skillsList" class="mb-0"></ul>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card p-3">
+            <h5>My Availabilities</h5>
+            <div id="avList"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+
+                $("#image").change(function () {
+
+            var file = this.files[0];
+
+            if (file) {
+                var reader = new FileReader();
+
+                reader.onload = function (e) {
+                    $("#preview")
+                        .attr("src", e.target.result)
+                        .removeClass("d-none");
+                };
+
+                reader.readAsDataURL(file);
+            }
+        });
+
+
+
+        function getToken(){
+            return (localStorage.getItem("jwt_token") || "").replace(/^"|"$/g, "");
+        }
+
+        function showOk(msg){
+            $("#msg").html(`<div class="alert alert-success">${msg}</div>`);
+        }
+
+        function showErr(msg){
+            $("#msg").html(`<div class="alert alert-danger">${msg}</div>`);
+        }
+
+        function formatDay(d){
+            if(d === null || d === undefined) return "";
+            const names = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+            return names[d] || d;
+        }
+
+        function formatTime(ts){
+            // "HH:mm:ss" -> "HH:mm"
+            if(!ts) return "";
+            return ts.toString().substring(0,5);
+        }
+
+        function loadMyProfile(){
+            $.ajax({
+                // url: "/api/sitters/me/profile",
+                url: "/api/SitterProfile/me/profile",
+                method: "GET",
+                headers: { Authorization: `Bearer ${getToken()}` }
+            })
+            .done(p => {
+                if(!p){
+                    $("#skillsList").html("");
+                    $("#avList").html(`<div class="text-muted">No profile yet.</div>`);
+                    return;
+                }
+
+
+                   if (p.photoUrl) {
+            $("#profileImage").attr("src", p.photoUrl);
+        }
+
+
+
+
+                // Fill form (optional)
+                $("#skillsText").val(p.skillsText || "");
+                $("#exp").val(p.experienceYears || 0);
+                $("#rate").val(p.hourlyRate || 0);
+                $("#loc").val(p.locationText || "");
+
+                // Skills list
+                const skills = p.skills || [];
+                $("#skillsList").html(skills.length
+                    ? skills.map(s => `<li>${s}</li>`).join("")
+                    : `<li class="text-muted">No skills</li>`);
+
+                // Availabilities list
+                const avs = p.availabilities || [];
+                if(!avs.length){
+                    $("#avList").html(`<div class="text-muted">No availability added.</div>`);
+                } else {
+                    const html = `
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Day</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${avs.map(a => `
+                                    <tr>
+                                        <td>${a.day !== null ? formatDay(a.day) : "-"}</td>
+                                        <td>${a.date ? a.date.substring(0,10) : "-"}</td>
+                                        <td>${formatTime(a.startTime)} - ${formatTime(a.endTime)}</td>
+                                        <td>${a.isAvailable ? "Available" : "Unavailable"}</td>
+                                    </tr>
+                                `).join("")}
+                            </tbody>
+                        </table>`;
+                    $("#avList").html(html);
+                }
+            })
+            .fail(xhr => showErr(xhr.responseText || "Load failed"));
+        }
+
+
+
+
+                $("#btnSave").click(() => {
+
+            const skills = ($("#skills").val() || "")
+                .split(",")
+                .map(x => x.trim())
+                .filter(x => x);
+
+            var formData = new FormData();
+
+            formData.append("SkillsText", $("#skillsText").val());
+            formData.append("ExperienceYears", $("#exp").val());
+            formData.append("HourlyRate", $("#rate").val());
+            formData.append("LocationText", $("#loc").val());
+
+            skills.forEach(s => {
+                formData.append("Skills", s);
+            });
+
+            var file = $("#image")[0].files[0];
+
+            if (file) {
+                formData.append("Image", file);
+            }
+
+            $.ajax({
+                // url: "/api/sitters/me/profile",
+                url: "/api/SitterProfile",
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${getToken()}`
+                },
+                data: formData,
+                processData: false,
+                contentType: false
+            })
+            .done(r => {
+               showOk(r.message);
+                loadMyProfile();
+            })
+            .fail(xhr => showErr(xhr.responseText || "Save failed"));
+        });
+
+
+
+        $(document).ready(loadMyProfile);
+    </script> 
+}
+
+
+
+
+
+
+
+ *@
+@* 
+<h3>My Profile</h3>
+<div id="msg"></div>
+
+<div class="row">
+
+    <!-- ================= LEFT: PROFILE ================= -->
+    <div class="col-md-6">
+        <div id="viewSection" class="card p-3 mb-3">
+
+            <div class="text-center mb-3">
+                <img id="v_photo" src="/default.png" style="width:120px;height:120px;border-radius:50%" />
+            </div>
+
+            <p><b>Full Name:</b> <span id="v_name"></span></p>
+            <p><b>Email:</b> <span id="v_email"></span></p>
+            <p><b>Mobile:</b> <span id="v_mobile"></span></p>
+            <p><b>NID:</b> <span id="v_nid"></span></p>
+            <p><b>Gender:</b> <span id="v_gender"></span></p>
+            <p><b>Date of Birth:</b> <span id="v_dob"></span></p>
+            <p><b>Address:</b> <span id="v_address"></span></p>
+            <p><b>Experience:</b> <span id="v_exp"></span></p>
+            <p><b>Rate:</b> <span id="v_rate"></span></p>
+            <p><b>Location:</b> <span id="v_loc"></span></p>
+
+            <p><b>Skills:</b></p>
+            <ul id="v_skills"></ul>
+
+            <button id="btnEdit" class="btn btn-primary">Edit</button>
+
+        </div>
+    </div>
+
+    <!-- ================= RIGHT: AVAILABILITY ================= -->
+    <div class="col-md-6">
+        <div class="card p-3">
+
+            <h5>My Availabilities</h5>
+            <div id="avList"></div>
+
+        </div>
+    </div>
+
+</div>
+
+
+<!-- ================= EDIT MODE ================= -->
+<div id="editSection" class="card p-3 mb-3" style="display:none;">
+
+    <div class="mb-2">
+        <label>Profile Picture URL</label>
+        <input id="photo" class="form-control" />
+    </div>
+
+    <div class="mb-2">
+        <label>Full Name</label>
+        <input id="fullName" class="form-control" />
+    </div>
+
+    <div class="mb-2">
+        <label>Email</label>
+        <input id="email" class="form-control" />
+    </div>
+
+    <div class="mb-2">
+        <label>Mobile</label>
+        <input id="mobile" class="form-control" />
+    </div>
+
+    <div class="mb-2">
+        <label>NID</label>
+        <input id="nid" class="form-control" />
+    </div>
+
+    <div class="mb-2">
+        <label>Gender</label>
+        <select id="gender" class="form-control">
+            <option value="">Select</option>
+            <option>Male</option>
+            <option>Female</option>
+        </select>
+    </div>
+
+    <div class="mb-2">
+        <label>Date of Birth</label>
+        <input id="dob" type="date" class="form-control" />
+    </div>
+
+    <div class="mb-2">
+        <label>Address</label>
+        <input id="address" class="form-control" />
+    </div>
+
+  
+
+    <div class="mb-2">
+        <label>Skills </label>
+        <input id="skills" class="form-control" />
+    </div>
+
+    <div class="mb-2">
+        <label>Experience Years</label>
+        <input id="exp" type="number" class="form-control" />
+    </div>
+
+    <div class="mb-2">
+        <label>Hourly Rate</label>
+        <input id="rate" type="number" class="form-control" />
+    </div>
+
+    <div class="mb-2">
+        <label>Location</label>
+        <input id="loc" class="form-control" />
+    </div>
+
+    <button id="btnSave" class="btn btn-success">Save</button>
+    <button id="btnCancel" class="btn btn-secondary">Cancel</button>
+</div>
+
+
+@section Scripts {
+<script>
+    function getToken(){
+        return (localStorage.getItem("jwt_token") || "").replace(/^"|"$/g, "");
+    }
+
+    function showOk(msg){
+        $("#msg").html(`<div class="alert alert-success">${msg}</div>`);
+    }
+
+    function showErr(msg){
+        $("#msg").html(`<div class="alert alert-danger">${msg}</div>`);
+    }
+
+    function loadProfile(){
+        $.ajax({
+            url: "/api/SitterProfile/me/profile",
+            method: "GET",
+            headers: { Authorization: `Bearer ${getToken()}` }
+        })
+        .done(p => {
+
+            if(!p){
+                $("#viewSection").html("No profile found");
+                return;
+            }
+
+            // ===== VIEW MODE =====
+            $("#v_photo").attr("src", p.photoUrl || "/default.png");
+            $("#v_name").text(p.fullName);
+            $("#v_email").text(p.email);
+            $("#v_mobile").text(p.mobileNo);
+            $("#v_nid").text(p.nid);
+            $("#v_gender").text(p.gender);
+            $("#v_dob").text(p.dateOfBirth ? p.dateOfBirth.substring(0,10) : "");
+            $("#v_address").text(p.address);
+            $("#v_exp").text(p.experienceYears);
+            $("#v_rate").text(p.hourlyRate);
+            $("#v_loc").text(p.locationText);
+
+            const skills = p.skills || [];
+            $("#v_skills").html(skills.length 
+                ? skills.map(s => `<li>${s}</li>`).join("") 
+                : "<li>No skills</li>");
+
+
+            // ===== EDIT MODE PREFILL =====
+            $("#photo").val(p.photoUrl);
+            $("#fullName").val(p.fullName);
+            $("#email").val(p.email);
+            $("#mobile").val(p.mobileNo);
+            $("#nid").val(p.nid);
+            $("#gender").val(p.gender);
+            $("#dob").val(p.dateOfBirth ? p.dateOfBirth.substring(0,10) : "");
+            $("#address").val(p.address);
+            $("#skillsText").val(p.skills);
+            $("#exp").val(p.experienceYears);
+            $("#rate").val(p.hourlyRate);
+            $("#loc").val(p.locationText);
+        })
+        .fail(err => showErr("Load failed"));
+    }
+
+    // EDIT button
+    $("#btnEdit").click(()=> {
+        $("#viewSection").hide();
+        $("#editSection").show();
+    });
+
+    // Cancel
+    $("#btnCancel").click(()=> {
+        $("#editSection").hide();
+        $("#viewSection").show();
+    });
+
+    // SAVE
+    $("#btnSave").click(()=> {
+
+        const skills = ($("#skills").val()||"")
+            .split(",").map(x=>x.trim()).filter(x=>x);
+
+        const payload = {
+            fullName: $("#fullName").val(),
+            email: $("#email").val(),
+            mobileNo: $("#mobile").val(),
+            nid: $("#nid").val(),
+            gender: $("#gender").val(),
+            dateOfBirth: $("#dob").val(),
+            address: $("#address").val(),
+            photoUrl: $("#photo").val(),
+
+            skillsText: $("#skills").val(),
+            experienceYears: Number($("#exp").val()),
+            hourlyRate: Number($("#rate").val()),
+            locationText: $("#loc").val(),
+            skills: skills
+        };
+
+        $.ajax({
+            url: "/api/sitters/me/profile",
+            method:"POST",
+            contentType:"application/json",
+            headers: { Authorization: `Bearer ${getToken()}` },
+            data: JSON.stringify(payload)
+        })
+        .done(()=> {
+            showOk("Saved Successfully");
+            $("#editSection").hide();
+            $("#viewSection").show();
+            loadProfile();
+        })
+        .fail(err => showErr("Save failed"));
+    });
+
+    // DELETE
+    $("#btnDelete").click(()=> {
+        if(!confirm("Are you sure?")) return;
+
+        $.ajax({
+            url: "/api/sitters/me/profile",
+            method:"DELETE",
+            headers: { Authorization: `Bearer ${getToken()}` }
+        })
+        .done(()=> {
+            showOk("Deleted");
+            location.reload();
+        })
+        .fail(err => showErr("Delete failed"));
+    });
+
+    $(document).ready(loadProfile);
+
+       
+</script>
+}
+ *@

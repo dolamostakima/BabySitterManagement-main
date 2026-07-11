@@ -1,0 +1,35 @@
+﻿@{
+    ViewData["Title"] = "Favorites";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<h3>My Favorites</h3>
+<div id="msg"></div>
+<div id="list"></div>
+
+@section Scripts {
+    <script>
+        $.get("/api/favorites/me?page=1&pageSize=50")
+          .done(res=>{
+            const items = res.items || [];
+            if(!items.length){ $("#list").html(`<div class="alert alert-warning">No favorites</div>`); return; }
+            let html = `<table class="table table-bordered"><thead><tr>
+              <th>Sitter</th><th>Rate</th><th>Location</th><th>Action</th>
+            </tr></thead><tbody>`;
+            items.forEach(x=>{
+              html += `<tr>
+                <td>${x.fullName}</td><td>${x.hourlyRate}</td><td>${x.locationText}</td>
+                <td><button class="btn btn-sm btn-danger" onclick="rm(${x.babySitterProfileId})">Remove</button></td>
+              </tr>`;
+            });
+            html += `</tbody></table>`;
+            $("#list").html(html);
+          })
+          .fail(xhr=> $("#msg").html(`<div class="alert alert-danger">${xhr.responseText||"Load failed"}</div>`));
+
+        window.rm = function(id){
+          $.ajax({url:"/api/favorites/"+id, method:"DELETE"})
+            .done(()=>location.reload())
+            .fail(xhr=>alert(xhr.responseText||"Failed"));
+        }
+    </script>
+}

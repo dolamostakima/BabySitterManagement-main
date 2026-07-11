@@ -1,0 +1,286 @@
+﻿@model int
+@{
+    ViewData["Title"] = "Admin - Booking Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var id = Model;
+}
+
+<div class="container py-3">
+    <h3 class="mb-4">Booking Details (#@id)</h3>
+
+    <div id="msg"></div>
+    <div id="details">Loading...</div>
+</div>
+
+@section Scripts {
+    <script>
+        const id = @id;
+        const API_ROOT = window.API_BASE || "";
+        const token = (localStorage.getItem("jwt_token") || "").replace(/^"|"$/g, "");
+
+        function api(method, url, body) {
+            return $.ajax({
+                url: API_ROOT + url,
+                method: method,
+                contentType: "application/json",
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                data: body ? JSON.stringify(body) : null
+            });
+        }
+
+        function escapeHtml(text) {
+            return $("<div>").text(text || "").html();
+        }
+
+        function safeDate(v) {
+            if (!v) return "-";
+            return String(v).substring(0, 10);
+        }
+
+        function safeDateTime(v) {
+            if (!v) return "-";
+            return String(v).replace("T", " ").substring(0, 16);
+        }
+
+        function safeTime(v) {
+            if (!v) return "-";
+            return String(v).substring(0, 5);
+        }
+
+        function badge(status) {
+            const map = {
+                Pending: "warning",
+                Accepted: "info",
+                Confirmed: "primary",
+                Completed: "success",
+                Rejected: "danger",
+                Cancelled: "secondary"
+            };
+            return `<span class="badge bg-${map[status] || "dark"}">${status || "-"}</span>`;
+        }
+
+        function showOk(t) {
+            $("#msg").html(`<div class="alert alert-success">${t}</div>`);
+        }
+
+        function showErr(t) {
+            $("#msg").html(`<div class="alert alert-danger">${t}</div>`);
+        }
+
+        function renderReview(review) {
+            if (!review) {
+                return `<div class="text-muted">No review yet</div>`;
+            }
+
+            const sitterReplyHtml = review.sitterReply
+                ? `
+                            <div class="mt-3 p-3 bg-light rounded border">
+                                <div class="fw-semibold text-primary mb-1">Sitter Reply</div>
+                                <div>${escapeHtml(review.sitterReply)}</div>
+                                <div class="small text-muted mt-2">
+                                    Replied on ${safeDate(review.sitterReplyAt)}
+                                </div>
+                            </div>
+                          `
+                : `
+                            <div class="mt-3 p-3 bg-light rounded border">
+                                <div class="fw-semibold text-primary mb-1">Sitter Reply</div>
+                                <div class="text-muted">No reply yet.</div>
+                            </div>
+                          `;
+
+            return `
+                        <div>
+                            <div><b>Rating:</b> ⭐ ${review.rating}/5</div>
+                            <div class="mt-2">
+                                <b>Parent Review:</b><br/>
+                                ${review.comment ? escapeHtml(review.comment) : "<span class='text-muted'>No comment</span>"}
+                            </div>
+
+                            <div class="mt-2 small">
+                                <span class="badge bg-${review.isApproved ? "success" : "warning text-dark"}">
+                                    ${review.isApproved ? "Approved" : "Pending"}
+                                </span>
+                                ${review.isHidden ? `<span class="badge bg-secondary ms-1">Hidden</span>` : ""}
+                            </div>
+
+                            ${sitterReplyHtml}
+                        </div>
+                    `;
+        }
+
+        function load() {
+            api("GET", "/api/admin/bookings/" + id)
+                .done(function(b) {
+
+                    let statusButtons = "";
+                    (b.allowedNextStatuses || []).forEach(s => {
+                        statusButtons += `
+                                    <button class="btn btn-sm btn-outline-dark me-1 mb-1"
+                                            onclick="changeStatus('${s}')">${s}</button>`;
+                    });
+
+                    let payBtn = "";
+                    if (b.payment && b.payment.status !== "Paid") {
+                        payBtn = `<button class="btn btn-sm btn-success" onclick="markPaid()">Mark Paid</button>`;
+                    }
+
+                    let checkInBtn = "";
+                    if (!b.attendance) {
+                        checkInBtn = `<button class="btn btn-sm btn-info" onclick="checkIn()">Check-in</button>`;
+                    }
+
+                    let checkOutBtn = "";
+                    if (b.attendance && !b.attendance.checkOutTime) {
+                        checkOutBtn = `<button class="btn btn-sm btn-warning" onclick="checkOut()">Check-out</button>`;
+                    }
+
+                    let historyHtml = (b.statusHistory || []).map(h => `
+                                <div class="border-start ps-3 mb-3">
+                                    <b>${h.fromStatus} → ${h.toStatus}</b>
+                                    <div class="text-muted small">${safeDateTime(h.changedAt)}</div>
+                                    ${h.note ? `<div class="mt-1">${escapeHtml(h.note)}</div>` : ""}
+                                </div>
+                            `).join("");
+
+                    $("#details").html(`
+                                <div class="card shadow-sm mb-3">
+                                    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                        <div>Status: ${badge(b.status)}</div>
+                                        <div>${statusButtons}</div>
+                                    </div>
+                                    <div class="card-body row g-3">
+                                        <div class="col-md-6">
+                                            <b>Date:</b> ${safeDate(b.bookingDate)}<br/>
+                                            <b>Time:</b> ${safeTime(b.startTime)} - ${safeTime(b.endTime)}<br/>
+                                            <b>Address:</b> ${escapeHtml(b.serviceAddressText || "-")}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <b>Total:</b> ${b.totalAmount ?? "-"}<br/>
+                                            <b>Created:</b> ${safeDate(b.createdAt)}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="card shadow-sm h-100">
+                                            <div class="card-header bg-primary text-white">Parent</div>
+                                            <div class="card-body">
+                                                ${escapeHtml(b.parentUser?.fullName || "-")}<br/>
+                                                ${escapeHtml(b.parentUser?.email || "-")}<br/>
+                                                ${escapeHtml(b.parentUser?.phoneNumber || "-")}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="card shadow-sm h-100">
+                                            <div class="card-header bg-success text-white">Sitter</div>
+                                            <div class="card-body">
+                                                ${escapeHtml(b.babySitterProfile?.user?.fullName || "-")}<br/>
+                                                ${escapeHtml(b.babySitterProfile?.user?.email || "-")}<br/>
+                                                Rate: ${b.babySitterProfile?.hourlyRate ?? "-"}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3 mt-1">
+                                    <div class="col-md-6">
+                                        <div class="card shadow-sm h-100">
+                                            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                                                <span>Payment</span>
+                                                ${payBtn}
+                                            </div>
+                                            <div class="card-body">
+                                                ${b.payment ? `
+                                                    Amount: ${b.payment.amount ?? "-"}<br/>
+                                                    Method: ${escapeHtml(b.payment.method || "-")}<br/>
+                                                    Status: ${escapeHtml(b.payment.status || "-")}
+                                                ` : `No payment record`}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="card shadow-sm h-100">
+                                            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                                                <span>Attendance</span>
+                                                <div>${checkInBtn} ${checkOutBtn}</div>
+                                            </div>
+                                            <div class="card-body">
+                                                ${b.attendance ? `
+                                                    Check-in: ${safeDateTime(b.attendance.checkInTime)}<br/>
+                                                    Check-out: ${safeDateTime(b.attendance.checkOutTime)}
+                                                ` : `No attendance yet`}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card shadow-sm mt-3">
+                                    <div class="card-header bg-warning">Review</div>
+                                    <div class="card-body">
+                                        ${renderReview(b.review)}
+                                    </div>
+                                </div>
+
+                                <div class="card shadow-sm mt-3">
+                                    <div class="card-header">Status History</div>
+                                    <div class="card-body">${historyHtml || "No history"}</div>
+                                </div>
+                            `);
+                })
+                .fail(function(x) {
+                    showErr(x.responseText || "Failed");
+                });
+        }
+
+        function changeStatus(toStatus) {
+            api("POST", `/api/admin/bookings/${id}/status`, { toStatus })
+                .done(function() {
+                    showOk("Status updated");
+                    load();
+                })
+                .fail(function(x) {
+                    showErr(x.responseText || "Status update failed");
+                });
+        }
+
+        function markPaid() {
+            api("POST", `/api/admin/bookings/${id}/payment/mark-paid`, { method: "Cash" })
+                .done(function() {
+                    showOk("Payment marked paid");
+                    load();
+                })
+                .fail(function(x) {
+                    showErr(x.responseText || "Payment update failed");
+                });
+        }
+
+        function checkIn() {
+            api("POST", `/api/admin/bookings/${id}/attendance/checkin`)
+                .done(function() {
+                    showOk("Checked in");
+                    load();
+                })
+                .fail(function(x) {
+                    showErr(x.responseText || "Check-in failed");
+                });
+        }
+
+        function checkOut() {
+            api("POST", `/api/admin/bookings/${id}/attendance/checkout`)
+                .done(function() {
+                    showOk("Checked out");
+                    load();
+                })
+                .fail(function(x) {
+                    showErr(x.responseText || "Check-out failed");
+                });
+        }
+
+        $(document).ready(load);
+    </script>
+}

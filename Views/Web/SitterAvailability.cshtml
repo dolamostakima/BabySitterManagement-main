@@ -1,0 +1,558 @@
+﻿@{
+    ViewData["Title"] = "My Availability";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h3>Availability</h3>
+
+<div id="msg"></div>
+
+<div class="card p-3 mb-3">
+
+    <div class="row g-2">
+
+        <div class="col-md-3">
+            <select id="day" class="form-select">
+                <option value="">(Weekly) Select Day</option>
+                <option value="1">Sunday</option>
+                <option value="2">Monday</option>
+                <option value="3">Tuesday</option>
+                <option value="4">Wednesday</option>
+                <option value="5">Thursday</option>
+                <option value="6">Friday</option>
+                <option value="7">Saturday</option>
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <input id="date" type="date" class="form-control" placeholder="From Date" />
+        </div>
+
+        <div class="col-md-2">
+            <input id="endDate" type="date" class="form-control" placeholder="To Date" />
+        </div>
+
+        <div class="col-md-2">
+            <input id="start" type="time" class="form-control" />
+        </div>
+
+        <div class="col-md-2">
+            <input id="end" type="time" class="form-control" />
+        </div>
+
+        <div class="col-md-1">
+            <button id="btnAdd" class="btn btn-primary w-100">
+                Add
+            </button>
+        </div>
+
+    </div>
+
+</div>
+
+<div id="list"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+@section Scripts {
+
+    <script>
+
+        function getToken(){
+            return (localStorage.getItem("jwt_token") || "").replace(/^"|"$/g,"");
+        }
+
+        function showMsg(id,msg,type){
+
+            let cls = type=="ok"
+                ? "alert-success"
+                : "alert-danger";
+
+            $(id).html(`<div class="alert ${cls}">${msg}</div>`);
+        }
+
+        function dayName(day){
+
+            switch(day){
+
+                case 1:return "Sunday";
+                case 2:return "Monday";
+                case 3:return "Tuesday";
+                case 4:return "Wednesday";
+                case 5:return "Thursday";
+                case 6:return "Friday";
+                case 7:return "Saturday";
+                default:return "-";
+            }
+
+        }
+
+        function load(){
+
+            $.ajax({
+
+                url:"/api/availabilities/me",
+                method:"GET",
+
+                headers:{
+                    Authorization:`Bearer ${getToken()}`
+                }
+
+            })
+
+            .done(function(items){
+
+                if(!items.length){
+
+                    $("#list").html(`
+                        <div class="alert alert-warning">
+                            No Availability Found
+                        </div>`);
+
+                    return;
+                }
+
+                let html=`
+                <table class="table table-bordered table-striped">
+
+                <thead>
+
+                <tr>
+
+                    <th>ID</th>
+                    <th>Day</th>
+                    <th>From Date</th>
+                    <th>To Date</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Action</th>
+
+                </tr>
+
+                </thead>
+
+                <tbody>`;
+
+                items.forEach(a=>{
+
+                    html+=`
+
+                    <tr>
+
+                        <td>${a.id}</td>
+
+                        <td>${a.day!=null ? dayName(a.day) : "-"}</td>
+
+                        <td>${a.date ? a.date.substring(0,10) : "-"}</td>
+
+                        <td>${a.endDate ? a.endDate.substring(0,10) : "-"}</td>
+
+                        <td>${a.startTime} - ${a.endTime}</td>
+
+                        <td>
+
+                        ${a.isAvailable
+                            ? '<span class="badge bg-success">Available</span>'
+                            : '<span class="badge bg-danger">Unavailable</span>'}
+
+                        </td>
+
+                        <td>
+
+                        <button class="btn btn-danger btn-sm"
+                                onclick="del(${a.id})">
+
+                            Delete
+
+                        </button>
+
+                        </td>
+
+                    </tr>`;
+
+                });
+
+                html+="</tbody></table>";
+
+                $("#list").html(html);
+
+            })
+
+            .fail(function(xhr){
+
+                showMsg("#msg",
+                    xhr.responseText || "Load Failed",
+                    "err");
+
+            });
+
+        }
+
+        window.del=function(id){
+
+            $.ajax({
+
+                url:"/api/availabilities/me/"+id,
+                method:"DELETE",
+
+                headers:{
+                    Authorization:`Bearer ${getToken()}`
+                }
+
+            })
+
+            .done(function(){
+
+                load();
+
+            })
+
+            .fail(function(xhr){
+
+                showMsg("#msg",
+                    xhr.responseText || "Delete Failed",
+                    "err");
+
+            });
+
+        }
+
+        // Weekly Day দিলে Date disable
+        $("#day").change(function(){
+
+            if($(this).val()){
+
+                $("#date").prop("disabled",true).val("");
+                $("#endDate").prop("disabled",true).val("");
+
+            }
+            else{
+
+                $("#date").prop("disabled",false);
+                $("#endDate").prop("disabled",false);
+
+            }
+
+        });
+
+        // Date দিলে Weekly disable
+        $("#date").change(function(){
+
+            if($(this).val()){
+
+                $("#day").prop("disabled",true).val("");
+
+            }
+            else{
+
+                $("#day").prop("disabled",false);
+
+            }
+
+        });
+
+        $("#btnAdd").click(function(){
+
+            let day=$("#day").val();
+
+            let date=$("#date").val();
+
+            let endDate=$("#endDate").val();
+
+            const payload={
+
+                day:day=="" ? null : parseInt(day),
+
+                date:date=="" ? null : date,
+
+                endDate:endDate=="" ? null : endDate,
+
+                startTime:$("#start").val()+":00",
+
+                endTime:$("#end").val()+":00",
+
+                isAvailable:true
+
+            };
+
+            $.ajax({
+
+                url:"/api/availabilities/me",
+
+                method:"POST",
+
+                contentType:"application/json",
+
+                headers:{
+                    Authorization:`Bearer ${getToken()}`
+                },
+
+                data:JSON.stringify(payload)
+
+            })
+
+          .done(function (r) {
+
+            Swal.fire({
+                icon: "success",
+                title: "Add Availabilities",
+                text: " saved successfully.",
+                timer: 1800,
+                showConfirmButton: false
+            });
+
+            loadMyProfile();
+
+        })
+
+            .fail(function(xhr){
+
+                showMsg("#msg",
+                    xhr.responseText || "Add Failed",
+                    "err");
+
+            });
+
+        });
+
+        $(document).ready(function(){
+
+            load();
+
+        });
+
+    </script>
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@* @{
+    ViewData["Title"] = "My Availability";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<h3>Availability</h3>
+<div id="msg"></div>
+
+<div class="card p-3 mb-3">
+    <div class="row g-2">
+        <div class="col-md-3">
+            <select id="day" class="form-select">
+                <option value="">(Weekly) Select Day</option>
+                <option value="1">Sunday</option>
+                <option value="2">Monday</option>
+                <option value="3">Tuesday</option>
+                <option value="4">Wednesday</option>
+                <option value="5">Thursday</option>
+                <option value="6">Friday</option>
+                <option value="7">Saturday</option>
+            </select>
+        </div> 
+        <div class="col-md-3">
+            <input id="date" type="date" class="form-control" placeholder="(Date specific)" />
+            </div>
+        <div class="col-md-3">
+            <input id="endDate" type="date" class="form-control" placeholder="End Date" />
+        </div>
+
+        <div class="col-md-2"><input id="start" type="time" class="form-control" /></div>
+        <div class="col-md-2"><input id="end" type="time" class="form-control" /></div>
+        <div class="col-md-2"><button id="btnAdd" class="btn btn-primary w-100">Add</button></div>
+    </div>
+</div>
+
+<div id="list"></div>
+
+@section Scripts {
+    <script>
+        function t(v){ return v ? (v.length===5 ? v+":00" : v) : null; }
+
+        function load(){
+          $.get("/api/availabilities/me")
+            .done(items=>{
+              if(!items.length){ $("#list").html(`<div class="alert alert-warning">No availability</div>`); return; }
+              let html=`<table class="table table-bordered"><thead><tr><th>Id</th>
+
+
+
+             
+        <th>Day</th>
+        <th>From Date</th>
+        <th>To Date</th>
+        <th>Time</th>
+        <th>Action</th>
+              </tr></thead><tbody>`;
+              items.forEach(a=>{
+                html += `<tr>
+                         <td>${a.id}</td>
+
+        <td>
+            ${
+                a.day == 1 ? "Sunday" :
+                a.day == 2 ? "Monday" :
+                a.day == 3 ? "Tuesday" :
+                a.day == 4 ? "Wednesday" :
+                a.day == 5 ? "Thursday" :
+                a.day == 6 ? "Friday" :
+                a.day == 7 ? "Saturday" : ""
+            }
+        </td>
+
+        <td>${a.date ? a.date.substring(0,10) : ""}</td>
+
+        <td>${a.endDate ? a.endDate.substring(0,10) : ""}</td>
+
+        <td>${a.startTime.substring(0,5)} - ${a.endTime.substring(0,5)}</td>
+                  <td><button class="btn btn-sm btn-danger" onclick="del(${a.id})">Delete</button></td>
+                </tr>`;
+              });
+              html += `</tbody></table>`;
+              $("#list").html(html);
+            })
+            .fail(xhr=> $("#msg").html(`<div class="alert alert-danger">${xhr.responseText||"Load failed"}</div>`));
+        }
+
+        window.del = function(id){
+          $.ajax({url:"/api/availabilities/me/"+id, method:"DELETE"})
+            .done(()=>load())
+            .fail(xhr=>alert(xhr.responseText||"Delete failed"));
+        }
+
+
+              $("#day").on("change", function () {
+
+            if ($(this).val()) {
+
+                $("#date").val("").prop("disabled", true);
+                $("#endDate").val("").prop("disabled", true);
+
+            }
+            else {
+
+                $("#date").prop("disabled", false);
+                $("#endDate").prop("disabled", false);
+
+            }
+
+        });
+
+
+                $("#date").on("change", function () {
+
+            if ($(this).val()) {
+
+                $("#day").val("").prop("disabled", true);
+
+            }
+            else {
+
+                $("#day").prop("disabled", false);
+
+            }
+
+        });
+
+
+        $("#btnAdd").click(() => {
+
+          const dayVal = $("#day").val();
+          const dateVal = $("#date").val();
+
+          // ✅ Provide only ONE: Day OR Date
+          let day = dayVal === "" ? null : parseInt(dayVal, 10);
+
+          let date = dateVal === "" ? null : dateVal;
+          const endDateVal = $("#endDate").val();
+        let endDate = endDateVal === "" ? null : endDateVal;
+
+
+
+                if (date && endDate && endDate < date) {
+
+            alert("End Date cannot be earlier than From Date.");
+
+            return;
+
+        }
+
+
+          if (date) day = null;
+          if (day !== null) date = null;
+
+          const payload = {
+            day,
+            date,
+            endDate,
+            startTime: $("#start").val() + ":00",
+            endTime: $("#end").val() + ":00",
+            isAvailable: true
+          };
+
+          const token = (localStorage.getItem("jwt_token") || "").replace(/^"|"$/g, "");
+
+          $.ajax({
+            url: "/api/availabilities/me",
+            method: "POST",
+            contentType: "application/json",
+            headers: { Authorization: `Bearer ${token}` },
+            data: JSON.stringify(payload)
+          })
+          .done((res) => {
+            showMsg("#msg", "Added! AvailabilityId: " + res.availabilityId, "ok");
+            load();
+          })
+
+
+                  $("#day").val("");
+        $("#date").val("");
+        $("#endDate").val("");
+        $("#start").val("");
+        $("#end").val("");
+
+
+
+          .fail((xhr) => {
+            showMsg("#msg", xhr.responseText || "Add failed", "err");
+          });
+        });
+
+        load();
+
+                $("#day").prop("disabled", false);
+        $("#date").prop("disabled", false);
+        $("#endDate").prop("disabled", false);
+
+
+    </script>
+} *@

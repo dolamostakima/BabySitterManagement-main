@@ -1,0 +1,113 @@
+﻿@{
+    ViewData["Title"] = "Search Sitters";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h3>Search Baby Sitters</h3>
+
+<div class="card p-3 mb-3">
+    <div class="row g-2">
+        <div class="col-md-3">
+            <input id="location" class="form-control" placeholder="Location/Name" />
+        </div>
+        <div class="col-md-2">
+            <input id="minRate" type="number" class="form-control" placeholder="Min Rate" />
+        </div>
+        @* <div class="col-md-2">
+            <input id="maxRate" type="number" class="form-control" placeholder="Max Rate" />
+        </div> *@
+        <div class="col-md-2">
+            <input id="minExp" type="number" class="form-control" placeholder="Min Exp" />
+        </div>
+        @* <div class="col-md-3">
+            <input id="skills" class="form-control" placeholder="Skills: cooking, first aid" />
+        </div> *@
+    </div>
+
+    <div class="row g-2 mt-2">
+        <div class="col-md-3">
+            <input id="date" type="date" class="form-control" />
+        </div>
+        @* <div class="col-md-2">
+            <input id="startTime" type="time" class="form-control" />
+        </div>
+        <div class="col-md-2">
+            <input id="endTime" type="time" class="form-control" />
+        </div> *@
+        <div class="col-md-2">
+            <button id="btnSearch" class="btn btn-primary w-100">Search</button>
+        </div>
+    </div>
+</div>
+
+<div id="msg"></div>
+<div id="result1"></div>
+
+@section Scripts {
+    <script>
+        function parseTime(t) {
+            if (!t) return null;
+            // API DTO expects TimeSpan, JSON can be "HH:mm:ss"
+            return t.length === 5 ? (t + ":00") : t;
+        }
+
+        function loadSitters() {
+            const skillsRaw = $("#skills").val();
+            const skills = skillsRaw ? skillsRaw.split(",").map(x => x.trim()).filter(x => x) : null;
+
+            const payload = {
+                locationText: $("#location").val() || null,
+                minRate: $("#minRate").val() ? Number($("#minRate").val()) : null,
+                maxRate: $("#maxRate").val() ? Number($("#maxRate").val()) : null,
+                minExperienceYears: $("#minExp").val() ? Number($("#minExp").val()) : null,
+                skills: skills,
+                date: $("#date").val() || null,
+                startTime: parseTime($("#startTime").val()),
+                endTime: parseTime($("#endTime").val()),
+                onlyApproved: true,
+                page: 1,
+                pageSize: 50
+            };
+
+            $.ajax({
+                url: API_BASE + "/api/sitters/search",
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                success: function (res) {
+                    render(res.items || []);
+                },
+                error: function (xhr) {
+                    showMsg("#msg", xhr.responseText || "Search failed", "err");
+                }
+            });
+        }
+
+        function render(items) {
+            if (!items.length) {
+                $("#result1").html(`<div class="alert alert-warning">No sitters found.</div>`);
+                return;
+            }
+
+            let html = `<div class="row g-3">`;
+            items.forEach(s => {
+                html += `
+                  <div class="col-md-4">
+                    <div class="card p-3 h-100">
+                      <h5>${s.fullName}</h5>
+                      <div>Rate: <b>${s.hourlyRate}</b></div>
+                      <div>Exp: ${s.experienceYears} years</div>
+                      <div>Location: ${s.locationText}</div>
+                      <div>Rating: ${s.avgRating} (${s.reviewCount})</div>
+                      <a class="btn btn-sm btn-outline-primary mt-2" href="/Web/SitterDetails/${s.babySitterProfileId}">Details & Booking</a>
+                    </div>
+                  </div>`;
+            });
+            html += `</div>`;
+            $("#result1").html(html);
+        }
+
+        $("#btnSearch").click(loadSitters);
+        loadSitters();
+    </script>
+}

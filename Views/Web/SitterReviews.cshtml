@@ -1,0 +1,292 @@
+﻿@{
+    ViewData["Title"] = "My Reviews";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="mb-1">My Reviews</h3>
+            <p class="text-muted mb-0">See ratings, feedback, and reply to parent reviews.</p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="/Web/SitterBookings" class="btn btn-outline-primary">Back to Bookings</a>
+            <a href="/Web/SitterProfile" class="btn btn-outline-secondary">My Profile</a>
+        </div>
+    </div>
+
+    <div id="msg"></div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted mb-1">Average Rating</div>
+                    <div id="avgRating" class="display-6 fw-bold text-warning">0.0</div>
+                    <div id="avgStars" class="fs-4">☆☆☆☆☆</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted mb-1">Total Reviews</div>
+                    <div id="totalReviews" class="display-6 fw-bold text-primary">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted mb-1">5 Star Reviews</div>
+                    <div id="fiveStarReviews" class="display-6 fw-bold text-success">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="reviewList"></div>
+</div>
+
+@section Scripts {
+    <script>
+        const API_ROOT = window.API_BASE || "";
+        const token = (localStorage.getItem("jwt_token") || "").replace(/^"|"$/g, "");
+
+        function authHeaders() {
+            return token ? { Authorization: `Bearer ${token}` } : {};
+        }
+
+        function setMsg(text, type) {
+            if (!text) {
+                $("#msg").html("");
+                return;
+            }
+
+            let cls = "alert-info";
+            if (type === "ok") cls = "alert-success";
+            if (type === "err") cls = "alert-danger";
+            if (type === "warn") cls = "alert-warning";
+
+            $("#msg").html(`<div class="alert ${cls}">${text}</div>`);
+        }
+
+        function safeDate(v) {
+            if (!v) return "-";
+            return String(v).substring(0, 10);
+        }
+
+        function safeTime(v) {
+            if (!v) return "-";
+            return String(v).substring(0, 5);
+        }
+
+        function toStars(rating) {
+            const r = Math.max(0, Math.min(5, parseInt(rating || 0, 10)));
+            let s = "";
+            for (let i = 1; i <= 5; i++) {
+                s += i <= r ? "★" : "☆";
+            }
+            return s;
+        }
+
+        function escapeHtml(text) {
+            return $("<div>").text(text || "").html();
+        }
+
+        function renderSummary(res) {
+            const avg = parseFloat(res.avgRating || 0).toFixed(1);
+            const total = parseInt(res.total || 0, 10);
+            const fiveStar = parseInt(res.fiveStarReviews || 0, 10);
+
+            $("#avgRating").text(avg);
+            $("#avgStars").text(toStars(Math.round(parseFloat(avg))));
+            $("#totalReviews").text(total);
+            $("#fiveStarReviews").text(fiveStar);
+        }
+
+        function buildReplySection(item) {
+            const reply = item.sitterReply || "";
+            const replyAt = item.sitterReplyAt ? safeDate(item.sitterReplyAt) : "";
+
+            if (reply) {
+                return `
+                            <div class="mt-3 p-3 bg-light rounded border">
+                                <div class="fw-semibold text-primary mb-1">Your Reply</div>
+                                <div>${escapeHtml(reply)}</div>
+                                <div class="small text-muted mt-2">
+                                    Replied on ${replyAt || "-"}
+                                </div>
+                            </div>
+                        `;
+            }
+
+            return `
+                        <div class="mt-3 border-top pt-3">
+                            <label class="form-label fw-semibold small mb-2">Write a Reply</label>
+                            <textarea class="form-control reply-box"
+                                      data-id="${item.id}"
+                                      rows="3"
+                                      maxlength="1000"
+                                      placeholder="Write your reply to this review..."></textarea>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <small class="text-muted">Maximum 1000 characters.</small>
+                                <button class="btn btn-sm btn-primary" onclick="sendReply(${item.id})">
+                                    Send Reply
+                                </button>
+                            </div>
+                        </div>
+                    `;
+        }
+
+        function buildReviewCards(items) {
+            if (!items.length) {
+                $("#reviewList").html(`
+                            <div class="alert alert-warning mb-0">
+                                No reviews found.
+                            </div>
+                        `);
+                return;
+            }
+
+            let html = `<div class="row g-3">`;
+
+            items.forEach(item => {
+                const parent = item.parent || {};
+                const booking = item.booking || {};
+                const rating = parseInt(item.rating || 0, 10);
+                const stars = toStars(rating);
+                const comment = item.comment
+                    ? escapeHtml(item.comment)
+                    : `<span class="text-muted">No comment.</span>`;
+
+                html += `
+                            <div class="col-md-6">
+                                <div class="card shadow-sm border-0 h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div>
+                                                <h5 class="mb-1">${escapeHtml(parent.fullName || "Anonymous Parent")}</h5>
+                                                <div class="text-muted small">
+                                                    ${parent.email ? escapeHtml(parent.email) : ""}
+                                                </div>
+                                            </div>
+                                            <div class="text-end">
+                                                <div class="fw-bold text-warning fs-5">${stars}</div>
+                                                <div class="small text-muted">${rating}/5</div>
+                                            </div>
+                                        </div>
+
+                                        <div class="small text-muted mb-2">
+                                            Booking #${item.bookingId || booking.id || "-"}
+                                            &nbsp;•&nbsp;
+                                            ${safeDate(booking.bookingDate)}
+                                            &nbsp;•&nbsp;
+                                            ${safeTime(booking.startTime)} - ${safeTime(booking.endTime)}
+                                        </div>
+
+                                        <div class="border-top pt-3">
+                                            <div class="fw-semibold mb-1">Parent Review</div>
+                                            <p class="mb-2">${comment}</p>
+                                            <div class="small text-muted">
+                                                Reviewed on ${safeDate(item.createdAt)}
+                                            </div>
+                                        </div>
+
+                                        ${buildReplySection(item)}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+            });
+
+            html += `</div>`;
+            $("#reviewList").html(html);
+        }
+
+        function loadReviews() {
+            setMsg("", "");
+            $("#reviewList").html(`<div class="text-muted">Loading reviews...</div>`);
+
+            if (!token) {
+                $("#reviewList").html("");
+                setMsg("Please login first.", "err");
+                return;
+            }
+
+            const url = API_ROOT + "/api/reviews/my-received?page=1&pageSize=50";
+
+            $.ajax({
+                url: url,
+                method: "GET",
+                headers: authHeaders()
+            })
+                .done(function(res) {
+                    const items = res.items || [];
+                    renderSummary(res);
+                    buildReviewCards(items);
+                })
+                .fail(function(xhr) {
+                    $("#reviewList").html("");
+
+                    if (xhr.status === 401) {
+                        setMsg("Session expired. Please login again.", "err");
+                    } else if (xhr.status === 403) {
+                        setMsg("You are not allowed to view this page. Please login with a BabySitter account.", "err");
+                    } else {
+                        setMsg(xhr.responseText || "Failed to load reviews.", "err");
+                    }
+                });
+        }
+
+        window.sendReply = function(reviewId) {
+            const box = $(`.reply-box[data-id='${reviewId}']`);
+            const reply = (box.val() || "").trim();
+
+            if (!reply) {
+                setMsg("Reply is required.", "warn");
+                box.focus();
+                return;
+            }
+
+            if (reply.length > 1000) {
+                setMsg("Reply is too long.", "warn");
+                box.focus();
+                return;
+            }
+
+            const btn = box.closest(".mt-3").find("button");
+            btn.prop("disabled", true).text("Sending...");
+
+            $.ajax({
+                url: API_ROOT + "/api/reviews/" + reviewId + "/reply",
+                method: "POST",
+                contentType: "application/json",
+                headers: authHeaders(),
+                data: JSON.stringify({ reply: reply })
+            })
+                .done(function() {
+                    setMsg("Reply submitted successfully.", "ok");
+                    loadReviews();
+                })
+                .fail(function(xhr) {
+                    btn.prop("disabled", false).text("Send Reply");
+
+                    if (xhr.status === 401) {
+                        setMsg("Session expired. Please login again.", "err");
+                    } else if (xhr.status === 403) {
+                        setMsg("You are not allowed to reply to this review.", "err");
+                    } else {
+                        setMsg(xhr.responseText || "Reply failed.", "err");
+                    }
+                });
+        };
+
+        $(document).ready(function() {
+            loadReviews();
+        });
+    </script>
+}

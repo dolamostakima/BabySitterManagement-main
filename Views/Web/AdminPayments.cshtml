@@ -1,0 +1,116 @@
+﻿@{
+    ViewData["Title"] = "Admin - Payments";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h3> Payments</h3>
+
+<div class="card p-3 mb-3">
+    <div class="row g-2 align-items-end">
+
+        <div class="col-md-3">
+            <label>Status</label>
+            <select id="status" class="form-select">
+                <option value="">All</option>
+                <option>Pending</option>
+                <option>Paid</option>
+                <option>Refunded</option>
+            </select>
+        </div>
+
+        <div class="col-md-3">
+            <label>From</label>
+            <input id="from" type="date" class="form-control" />
+        </div>
+
+        <div class="col-md-3">
+            <label>To</label>
+            <input id="to" type="date" class="form-control" />
+        </div>
+
+        <div class="col-md-3 d-flex gap-2">
+
+            <button id="btnLoad" class="btn btn-primary w-50">🔍︎</button>
+
+            <button id="btnDownload" class="btn btn-primary w-50">🡻</button>
+        </div>
+
+    </div>
+</div>
+
+<div id="msg"></div>
+<div id="list"></div>
+
+@section Scripts {
+    <script>
+        function load() {
+            const st = $("#status").val();
+            const url = "/api/admin/payments" + (st ? ("?status=" + st) : "");
+
+            $.get(url)
+                .done(function(items) {
+                    if (!items.length) {
+                        $("#list").html(`<div class="alert alert-warning">No payments.</div>`);
+                        return;
+                    }
+
+                    let html = `<table class="table table-bordered">
+                      <thead><tr>
+                        <th>Id</th><th>BookingId</th><th>Amount</th><th>Method</th><th>TxnId</th><th>Status</th><th>Date</th>
+                      </tr></thead><tbody>`;
+
+                    items.forEach(p => {
+                        html += `<tr>
+                          <td>${p.id}</td>
+                          <td>${p.bookingId}</td>
+                          <td>${p.amount}</td>
+                          <td>${p.method}</td>
+                          <td>${p.transactionId || ""}</td>
+                          <td>${p.name || p.status}</td>
+                          <td>${(p.createdAt || "").toString().substring(0,10)}</td>
+                        </tr>`;
+                    });
+
+                    html += `</tbody></table>`;
+                    $("#list").html(html);
+                })
+                .fail(function(xhr) {
+                    showMsg("#msg", xhr.responseText || "Load failed", "err");
+                });
+        }
+
+        $("#btnLoad").click(load);
+        load();
+                $("#btnDownload").click(function () {
+
+            let table = document.querySelector("table");
+            if (!table) {
+                alert("No data to download");
+                return;
+            }
+
+            let rows = table.querySelectorAll("tr");
+            let csv = [];
+
+            rows.forEach(row => {
+                let cols = row.querySelectorAll("th, td");
+                let rowData = [];
+                cols.forEach(col => {
+                    rowData.push(col.innerText);
+                });
+                csv.push(rowData.join(","));
+            });
+
+            let csvContent = "data:text/csv;charset=utf-8," + csv.join("\n");
+
+            let encodedUri = encodeURI(csvContent);
+            let link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "payments.csv");
+            document.body.appendChild(link);
+
+            link.click();
+            document.body.removeChild(link);
+        });
+    </script>
+}

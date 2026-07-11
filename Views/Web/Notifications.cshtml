@@ -1,0 +1,26 @@
+﻿@{
+    ViewData["Title"] = "Notifications";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<h3>Notifications</h3>
+<div id="list"></div>
+
+@section Scripts {
+    <script>
+        $.get("/api/notifications/me?take=100")
+         .done(items=>{
+           if(!items.length){ $("#list").html(`<div class="alert alert-warning">No notifications</div>`); return; }
+           let html = `<ul class="list-group">`;
+           items.forEach(n=>{
+             html += `<li class="list-group-item">
+               <b>${n.title || "Notification"}</b><br/>
+               <span>${n.message}</span><br/>
+               <small class="text-muted">${n.sentAt || ""}</small>
+             </li>`;
+           });
+           html += `</ul>`;
+           $("#list").html(html);
+         })
+         .fail(()=> $("#list").html(`<div class="alert alert-danger">Login required</div>`));
+    </script>
+}

@@ -1,0 +1,404 @@
+﻿@{
+    ViewData["Title"] = "Parent Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+
+    <h3 class="mb-4">
+        👋 Welcome,
+        <span id="welcomeName"></span>
+    </h3>
+
+    <!-- ================= Top Section ================= -->
+
+    <div class="row g-4 mb-4">
+
+        <!-- Profile Card -->
+
+        <div class="col-lg-5">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body">
+
+                    <div class="row">
+
+
+
+                        <div class="col-md-9">
+
+                            <h4 id="parentName"></h4>
+
+                            <p>
+                                📍 Address :
+                                <strong id="address">
+                                    Mirpur, Dhaka
+                                </strong>
+                            </p>
+
+                            <p>
+                                ❤️ Favorite Sitters :
+                                <strong id="favoriteCount">0</strong>
+                            </p>
+
+                            <p>
+                                ✅ Completed Bookings :
+                                <strong id="completedBooking">0</strong>
+                            </p>
+
+
+                            <a href="/Web/EditParentProfile"
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-pencil-square"></i>
+                                Edit
+                            </a>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- AI Search Card -->
+
+        <div class="col-lg-7">
+
+            <div class="card shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <h5>🤖 AI Sitter Search</h5>
+
+                    <hr />
+
+                    <div class="d-flex gap-3 mb-3">
+
+                        <input type="text"
+                               id="searchText"
+                               class="form-control"
+                               placeholder="📍 Search sitter by location...">
+
+                        <button id="btnSearch" class="btn btn-primary px-3">
+                            Search
+                        </button>
+
+                    </div>
+
+                    <div id="aiSuggestions">
+
+                        <div class="alert alert-light">
+
+                            AI will recommend the best sitters here.
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ================= Summary ================= -->
+
+    <div class="row g-3 mb-4">
+
+        <div class="col-md-3">
+
+            <div class="card shadow-sm text-center p-3">
+
+                <h6>Completed Bookings</h6>
+
+                <h2 id="bookingCount">0</h2>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card shadow-sm text-center p-3">
+
+                <h6>Available Sitters</h6>
+
+                <h2 id="activeSitter">0</h2>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card shadow-sm text-center p-3">
+
+                <h6>Organizations</h6>
+
+                <h2 id="organizationCount">0</h2>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card shadow-sm text-center p-3">
+
+                <h6>Notifications</h6>
+
+                <h2 id="notificationCount">0</h2>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ================= Notification + Map ================= -->
+
+    <div class="row g-4">
+
+        <!-- Notifications -->
+
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body">
+
+                    <h5>🔔 Notifications</h5>
+
+                    <ul id="notificationList"
+                        class="list-group">
+
+                        <li class="list-group-item">
+                            No notifications.
+                        </li>
+
+                    </ul>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Map -->
+
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body">
+
+                    <h5>📍 Your Location</h5>
+
+                    <iframe id="serviceMap"
+                            src="https://www.google.com/maps?q=Dhaka&output=embed"
+                            style="width:100%; height:250px; border:0;">
+                    </iframe>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+
+    <script>
+
+           function getToken() {
+            return (localStorage.getItem("jwt_token") || "").replace(/^"|"$/g, "");
+        }
+
+        function loadDashboard() {
+
+            $.ajax({
+
+                url: "/api/ParentDashboard",
+                method: "GET",
+
+                headers: {
+                    Authorization: `Bearer ${getToken()}`
+                }
+
+            })
+
+            .done(function (res) {
+
+               
+
+                // Welcome
+               $("#welcomeName").text(res.fullName);
+
+                // Profile Card
+                $("#parentName").text(res.fullName);
+               $("#address").text(res.address ?? "No Address");
+
+                $("#favoriteCount").text(res.favoriteSitters ?? 0);
+               $("#completedBooking").text(res.completedBookings ?? 0);
+
+                // Summary
+                $("#bookingCount").text(res.completedBookings ?? 0);
+                $("#activeSitter").text(res.activeSitters ?? 0);
+                $("#organizationCount").text(res.organizationCount ?? 0);
+                $("#notificationCount").text(res.notificationCount ?? 0);
+
+                // Notifications
+                $("#notificationList").empty();
+
+                if (!res.notifications || res.notifications.length === 0) {
+
+                    $("#notificationList").append(`
+                        <li class="list-group-item text-muted">
+                            No notifications found.
+                        </li>
+                    `);
+
+                }
+                else {
+
+                    res.notifications.forEach(function (n) {
+
+                        $("#notificationList").append(`
+                            <li class="list-group-item">
+                                <strong>${n.title}</strong><br/>
+                                <small>${n.message}</small>
+                            </li>
+                        `);
+
+                    });
+
+                }
+
+                // Google Map
+                if (res.address) {
+
+                    $("#serviceMap").attr(
+                        "src",
+                        `https://www.google.com/maps?q=${encodeURIComponent(res.address)}&output=embed`
+                    );
+
+                }
+
+            })
+
+            .fail(function (xhr) {
+
+                console.log(xhr.responseText);
+
+            });
+
+        }
+
+                function searchSitters() {
+
+            const text = $("#searchText").val();
+
+            $.ajax({
+
+                url: "/api/ParentAI/search?text=" + encodeURIComponent(text),
+                method: "GET",
+
+                headers: {
+                    Authorization: `Bearer ${getToken()}`
+                }
+
+            })
+
+            .done(function (data) {
+
+                $("#aiSuggestions").empty();
+
+               if (!data || data.length === 0)  {
+
+                    $("#aiSuggestions").html(`
+                        <div class="alert alert-warning">
+                            No sitter found.
+                        </div>
+                    `);
+
+                    return;
+                }
+
+                data.forEach(function (s) {
+
+                    $("#aiSuggestions").append(`
+
+                        <div class="card mb-2">
+
+                            <div class="card-body">
+
+                                <h6>${s.fullName}</h6>
+
+                                <p class="mb-1">
+                                    📍 ${s.location ?? "No Location"}
+                                </p>
+
+                                <p class="mb-1">
+                                    ⭐ Experience : ${s.experience} Years
+                                </p>
+
+                                <p class="mb-0">
+                                    💰 ৳${s.hourlyRate}/hr
+                                </p>
+
+                                  <a href="/Web/SitterDetails/${s.id}"
+                   class="btn btn-outline-primary btn-sm">
+                    Details
+                </a>
+
+                            </div>
+
+                        </div>
+
+                    `);
+
+                });
+
+            })
+
+            .fail(function (xhr) {
+
+                console.log(xhr.responseText);
+
+            });
+
+        }
+
+        $(document).ready(function () {
+
+            loadDashboard();
+
+                    $("#btnSearch").click(function () {
+
+            searchSitters();
+
+                    });
+                            $("#searchText").keypress(function (e) {
+
+            if (e.which === 13) {
+
+                searchSitters();
+
+            }
+
+                             });
+
+
+        });
+
+    </script>
+
+}

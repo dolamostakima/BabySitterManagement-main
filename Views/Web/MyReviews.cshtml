@@ -1,0 +1,110 @@
+﻿@{
+    ViewData["Title"] = "My Reviews";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-3">
+    <h3 class="mb-3">My Reviews</h3>
+
+    <div id="msg"></div>
+    <div id="list" class="card p-3 shadow-sm">Loading...</div>
+</div>
+
+@section Scripts {
+    <script>
+        const API_ROOT = window.API_BASE || "";
+        const token = (localStorage.getItem("jwt_token") || "").replace(/^"|"$/g, "");
+
+        function api(url) {
+            return $.ajax({
+                url: API_ROOT + url,
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+            });
+        }
+
+        function showErr(t) {
+            $("#msg").html(`<div class="alert alert-danger">${t}</div>`);
+        }
+
+        function escapeHtml(text) {
+            return $("<div>").text(text || "").html();
+        }
+
+        function safeDate(v) {
+            if (!v) return "-";
+            return String(v).substring(0, 10);
+        }
+
+        function stars(n) {
+            n = parseInt(n || 0, 10);
+            let s = "";
+            for (let i = 1; i <= 5; i++) {
+                s += i <= n ? "★" : "☆";
+            }
+            return s;
+        }
+
+        function renderReply(r) {
+            if (!r.sitterReply) {
+                return `
+                            <div class="mt-3 p-3 bg-light rounded border">
+                                <div class="fw-semibold text-primary mb-1">Sitter Reply</div>
+                                <div class="text-muted">No reply yet.</div>
+                            </div>
+                        `;
+            }
+
+            return `
+                        <div class="mt-3 p-3 bg-light rounded border">
+                            <div class="fw-semibold text-primary mb-1">Sitter Reply</div>
+                            <div>${escapeHtml(r.sitterReply)}</div>
+                            <div class="small text-muted mt-2">
+                                Replied on ${safeDate(r.sitterReplyAt)}
+                            </div>
+                        </div>
+                    `;
+        }
+
+        api("/api/reviews/me")
+            .done(function(res) {
+                const items = res.items || [];
+
+                if (!items.length) {
+                    $("#list").html(`<div class="text-muted">No reviews yet.</div>`);
+                    return;
+                }
+
+                const html = items.map(r => `
+                            <div class="border rounded p-3 mb-3">
+                                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                                    <div>
+                                        <b class="text-warning">${stars(r.rating)}</b>
+                                        <span class="ms-1">(${r.rating}/5)</span>
+                                        <span class="text-muted ms-2">Booking #${r.bookingId}</span>
+                                    </div>
+                                    <div class="small text-muted">${safeDate(r.createdAt)}</div>
+                                </div>
+
+                                <div class="mt-3">
+                                    <div class="fw-semibold mb-1">My Review</div>
+                                    <div>${r.comment ? escapeHtml(r.comment) : "<span class='text-muted'>No comment</span>"}</div>
+                                </div>
+
+                                ${renderReply(r)}
+
+                                <div class="mt-3 small">
+                                    <span class="badge bg-${r.isApproved ? 'success' : 'warning text-dark'}">
+                                        ${r.isApproved ? 'Approved' : 'Pending'}
+                                    </span>
+                                    ${r.isHidden ? `<span class="badge bg-secondary ms-1">Hidden</span>` : ""}
+                                </div>
+                            </div>
+                        `).join("");
+
+                $("#list").html(html);
+            })
+            .fail(function(x) {
+                showErr(x.responseText || "Failed to load");
+            });
+    </script>
+}

@@ -1,0 +1,6 @@
+@SmartBabySitter_HostAddress = http://localhost:5231
+
+GET {{SmartBabySitter_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,422 @@
+﻿@{
+    ViewData["Title"] = "Sitter Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+
+    <h3 class="mb-4">
+        👋 Welcome,
+        <span class="text-primary" id="fullName">Mostakima Dola</span>
+    </h3>
+
+    <!-- Profile -->
+    <div class="row g-4 mb-4">
+
+        <div class="col-lg-7">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body">
+
+                    <div class="row">
+
+                        <div class="col-md-3 text-center">
+
+                            <img id="profileImage"
+                                 src="/images/default-user.png"
+                                 class="rounded-circle img-thumbnail"
+                                 width="130"
+                                 height="130"/>
+
+                        </div>
+
+                        <div class="col-md-9">
+
+                            <h4 id="name">Mostakima Dola</h4>
+
+                            <p>
+                                ⭐ Rating :
+                                <strong id="profileRating">0</strong>
+                            </p>
+
+                            <p id="verified" class="fw-bold"></p>
+
+                            <p>
+                                Experience :
+                                <strong id="exp"></strong> Years
+                            </p>
+
+                            <p>
+                                Hourly Rate :
+                                ৳ <strong id="rate"></strong>/hr
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- AI -->
+        <div class="col-lg-5">
+
+            <div class="card shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <h5>🤖 AI Career Suggestions</h5>
+
+                    <hr />
+
+                    <ul id="aiSuggestions" class="list-group list-group-flush">
+                    </ul>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Summary -->
+
+    <div class="row g-3 mb-4">
+
+        <div class="col-md-3">
+
+            <div class="card shadow-sm text-center p-3">
+
+                <h6>Total Bookings</h6>
+
+                <h2 id="bookingCount">0</h2>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card shadow-sm text-center p-3">
+
+                <h6>Reviews</h6>
+
+                <h2 id="reviewCount">0</h2>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card shadow-sm text-center p-3">
+
+                <h6>Rating</h6>
+
+                <h2 id="rating">0</h2>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card shadow-sm text-center p-3">
+
+                <h6>Notifications</h6>
+
+                <h2 id="notificationCount">0</h2>
+
+            </div>
+
+        </div>
+
+    </div>
+
+  
+
+    <!-- Notification -->
+
+    <div class="row g-4 mb-4">
+
+        <!-- Map -->
+
+        
+
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body">
+
+                    <h5>🔔 Notifications</h5>
+
+                    <ul id="notificationList" class="list-group">
+                    </ul>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body">
+
+                    <h5>📍 Service Location</h5>
+                    <iframe id="serviceMap"
+                            src="https://www.google.com/maps?q=Dhaka&output=embed"
+                            width="550"
+                            height="250"
+                            style="border:0;">
+                    </iframe>
+                </div>
+
+            </div>
+
+        </div>
+
+
+    </div>
+ </div>
+
+
+@section Scripts{
+
+            <script>
+
+                function getToken() {
+                    return (localStorage.getItem("jwt_token") || "").replace(/^"|"$/g, "");
+                }
+
+                            function loadDashboard() {
+
+                $.ajax({
+                    url: "/api/SitterDashboard",
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${getToken()}`
+                    }
+                })
+
+                .done(function (res) {
+
+                    // Profile
+                    $("#fullName").text(res.fullName);
+                    $("#name").text(res.fullName);
+
+                    $("#exp").text(res.experienceYears ?? 0);
+                    $("#rate").text(res.hourlyRate ?? 0);
+
+                    // Image
+                    if (res.photoUrl) {
+                        $("#profileImage").attr("src", res.photoUrl);
+                    }
+
+                                // Service Location Map
+            if (res.location) {
+                $("#serviceMap").attr(
+                    "src",
+                    `https://www.google.com/maps?q=${encodeURIComponent(res.location)}&output=embed`
+                );
+            }
+
+                    // Summary
+                    $("#bookingCount").text(res.bookingCount ?? 0);
+                    $("#reviewCount").text(res.reviewCount ?? 0);
+                    $("#rating").text(res.rating ?? 0);
+                    $("#profileRating").text(res.rating ?? 0);
+                    $("#notificationCount").text(res.notificationCount ?? 0);
+
+                    // Verified
+                    if (res.verified) {
+                        $("#verified")
+                            .removeClass("text-danger")
+                            .addClass("text-success")
+                            .text("✔ Verified");
+                    }
+                    else {
+                        $("#verified")
+                            .removeClass("text-success")
+                            .addClass("text-danger")
+                            .text("Pending Approval");
+                    }
+
+                    // Notifications
+                    $("#notificationList").empty();
+
+                    if (!res.notifications || res.notifications.length === 0) {
+
+                        $("#notificationList").append(`
+                            <li class="list-group-item text-muted">
+                                No notifications found.
+                            </li>
+                        `);
+
+                    } else {
+
+                        res.notifications.forEach(function (n) {
+
+                            $("#notificationList").append(`
+                                <li class="list-group-item">
+                                    <strong>${n.title}</strong><br>
+                                    <small>${n.message}</small>
+                                </li>
+                            `);
+
+                        });
+
+                    }
+
+                })
+
+                .fail(function (xhr) {
+
+                    console.log(xhr.responseText);
+
+                });
+
+            }
+
+                   
+
+                            function loadAISuggestions() {
+
+                $.ajax({
+
+                    url: "/api/SitterAI/suggestions",
+                    method: "GET",
+
+                    headers: {
+                        Authorization: `Bearer ${getToken()}`
+                    }
+
+                })
+
+                .done(function (data) {
+
+                    $("#aiSuggestions").empty();
+
+                    data.forEach(function (item) {
+
+                        $("#aiSuggestions").append(
+                            `<li class="list-group-item">${item}</li>`
+                        );
+
+                    });
+
+                })
+
+                .fail(function (xhr) {
+
+                    console.log(xhr.responseText);
+
+                });
+
+            }
+
+                           $(document).ready(function () {
+
+                loadDashboard();
+                loadAISuggestions();
+
+            });
+
+            </script>
+
+}
+
+
+
+
+
+@* @{
+    ViewData["Title"] = "SitterDashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div class="container-fluid">
+
+    <!-- ✅ Top Stats Cards -->
+    <div class="row g-4 mb-4">
+
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3 text-center">
+                <h6>Total Users</h6>
+                <h3 class="text-primary">120</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3 text-center">
+                <h6>Total Bookings</h6>
+                <h3 class="text-success">85</h3>
+            </div>
+        </div>
+ *@
+       @*  <div class="col-md-3">
+            <div class="card shadow-sm p-3 text-center">
+                <h6>Active Sitters</h6>
+                <h3 class="text-warning">32</h3>
+            </div>
+        </div> *@
+
+     @*    <div class="col-md-3">
+            <div class="card shadow-sm p-3 text-center">
+                <h6>Notifications</h6>
+                <h3 class="text-danger">5</h3>
+            </div>
+        </div>
+
+    </div> *@
+
+    <!-- ✅ Search Sitter -->
+  @*   <div class="card shadow-sm p-4 mb-4">
+        <h5>Search Sitter</h5>
+
+        <div class="input-group mt-2">
+            <input type="text" class="form-control" placeholder="Search by name, location..." />
+            <button class="btn btn-primary">Search</button>
+        </div>
+    </div> *@
+
+    <!-- ✅ Notification Panel + Map -->
+   @*  <div class="row g-4"> *@
+
+        <!-- Notifications -->
+ @*        <div class="col-md-4">
+            <div class="card shadow-sm p-3">
+                <h5>Notifications</h5>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">New New booking Request</li>
+                    <li class="list-group-item">Show reviews</li>
+                    <li class="list-group-item">Massage</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Google Map -->
+        <div class="col-md-8">
+            <div class="card shadow-sm p-3">
+                <h5>Live Location</h5>
+
+                <iframe src="https://www.google.com/maps?q=Dhaka&output=embed"
+                        width="100%"
+                        height="350"
+                        style="border:0;">
+                </iframe>
+
+            </div>
+        </div>
+
+    </div>
+
+</div> *@

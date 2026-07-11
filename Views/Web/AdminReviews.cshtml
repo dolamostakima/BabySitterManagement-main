@@ -1,0 +1,216 @@
+﻿@{
+    ViewData["Title"] = "Admin - Reviews";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-3">
+    <h3 class="mb-3"> Reviews Moderation</h3>
+
+    <div class="card p-3 mb-3 shadow-sm">
+        <div class="row g-2">
+            <div class="col-md-3">
+                <label class="form-label">Approval</label>
+                <select id="approved" class="form-select">
+                    <option value="">All</option>
+                    <option value="true">Approved</option>
+                    <option value="false">Pending</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Visibility</label>
+                <select id="hidden" class="form-select">
+                    <option value="">All</option>
+                    <option value="false">Visible</option>
+                    <option value="true">Hidden</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <input id="query" class="form-control" placeholder="Search name/email/comment/reply" />
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+
+                <button id="btnLoad" class="btn btn-primary w-50">🔍︎</button>
+
+                <button id="btnDownload" class="btn btn-primary w-50">🡻</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="msg"></div>
+    <div id="list" class="card p-3 shadow-sm">Loading...</div>
+</div>
+
+@section Scripts {
+    <script>
+        const API_ROOT = window.API_BASE || "";
+        const token = (localStorage.getItem("jwt_token") || "").replace(/^"|"$/g, "");
+
+        function api(method, url, body) {
+            return $.ajax({
+                url: API_ROOT + url,
+                method: method,
+                contentType: "application/json",
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                data: body ? JSON.stringify(body) : null
+            });
+        }
+
+        function showErr(t) {
+            $("#msg").html(`<div class="alert alert-danger">${t}</div>`);
+        }
+
+        function showOk(t) {
+            $("#msg").html(`<div class="alert alert-success">${t}</div>`);
+        }
+
+        function escapeHtml(text) {
+            return $("<div>").text(text || "").html();
+        }
+
+        function safeDate(v) {
+            if (!v) return "-";
+            return String(v).substring(0, 10);
+        }
+
+        function stars(n) {
+            n = parseInt(n || 0, 10);
+            let s = "";
+            for (let i = 1; i <= 5; i++) {
+                s += i <= n ? "★" : "☆";
+            }
+            return s;
+        }
+
+        function renderReply(r) {
+            if (!r.sitterReply) {
+                return `
+                            <div class="mt-3 p-3 bg-light rounded border">
+                                <div class="fw-semibold text-primary mb-1">Sitter Reply</div>
+                                <div class="text-muted">No reply yet.</div>
+                            </div>
+                        `;
+            }
+
+            return `
+                        <div class="mt-3 p-3 bg-light rounded border">
+                            <div class="fw-semibold text-primary mb-1">Sitter Reply</div>
+                            <div>${escapeHtml(r.sitterReply)}</div>
+                            <div class="small text-muted mt-2">
+                                Replied on ${safeDate(r.sitterReplyAt)}
+                            </div>
+                        </div>
+                    `;
+        }
+
+        function load() {
+            const approved = $("#approved").val();
+            const hidden = $("#hidden").val();
+            const query = $("#query").val();
+
+            let url = `/api/admin/reviews?page=1&pageSize=50`;
+
+            if (approved !== "") url += `&approved=${approved}`;
+            if (hidden !== "") url += `&hidden=${hidden}`;
+            if (query) url += `&query=${encodeURIComponent(query)}`;
+
+            api("GET", url)
+                .done(function(res) {
+                    const items = res.items || [];
+
+                    if (!items.length) {
+                        $("#list").html(`<div class="text-muted">No reviews found.</div>`);
+                        return;
+                    }
+
+                    const html = items.map(r => `
+                                <div class="border rounded p-3 mb-3">
+                                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                                        <div>
+                                            <b class="text-warning">${stars(r.rating)}</b>
+                                            <span class="ms-1">(${r.rating}/5)</span>
+                                            <span class="ms-2 badge bg-${r.isApproved ? 'success' : 'warning text-dark'}">
+                                                ${r.isApproved ? 'Approved' : 'Pending'}
+                                            </span>
+                                            ${r.isHidden ? `<span class="ms-1 badge bg-secondary">Hidden</span>` : ""}
+                                        </div>
+                                        <div class="small text-muted">
+                                            ${safeDate(r.createdAt)}
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <div class="fw-semibold mb-1">Parent Review</div>
+                                        <div>${r.comment ? escapeHtml(r.comment) : "<span class='text-muted'>No comment</span>"}</div>
+                                    </div>
+
+                                    ${renderReply(r)}
+
+                                    <div class="mt-3 small text-muted">
+                                        <div><b>Booking:</b> #${r.bookingId || "-"}</div>
+                                        <div><b>Parent:</b> ${escapeHtml(r.parent?.fullName || "-")} (${escapeHtml(r.parent?.email || "-")})</div>
+                                        <div><b>Sitter:</b> ${escapeHtml(r.sitter?.fullName || "-")} (${escapeHtml(r.sitter?.email || "-")})</div>
+                                    </div>
+
+                                    <div class="mt-3 d-flex gap-2 flex-wrap">
+                                        <button class="btn btn-sm btn-success" onclick="decision(${r.id}, true, false)">Approve</button>
+                                        <button class="btn btn-sm btn-secondary" onclick="decision(${r.id}, ${r.isApproved ? "true" : "false"}, true)">Hide</button>
+                                        <button class="btn btn-sm btn-outline-dark" onclick="decision(${r.id}, false, false)">Reject (keep pending)</button>
+                                    </div>
+                                </div>
+                            `).join("");
+
+                    $("#list").html(html);
+                })
+                .fail(function(x) {
+                    showErr(x.responseText || "Load failed");
+                });
+        }
+
+        function decision(id, approve, hide) {
+            api("POST", `/api/admin/reviews/${id}/decision`, { approve, hide })
+                .done(function() {
+                    showOk("Updated");
+                    load();
+                })
+                .fail(function(x) {
+                    showErr(x.responseText || "Update failed");
+                });
+        }
+
+        $("#btnLoad").click(load);
+        $(document).ready(load);
+
+         $("#btnDownload").click(function () {
+
+            let table = document.querySelector("table");
+            if (!table) {
+                alert("No data to download");
+                return;
+            }
+
+            let rows = table.querySelectorAll("tr");
+            let csv = [];
+
+            rows.forEach(row => {
+                let cols = row.querySelectorAll("th, td");
+                let rowData = [];
+                cols.forEach(col => {
+                    rowData.push(col.innerText);
+                });
+                csv.push(rowData.join(","));
+            });
+
+            let csvContent = "data:text/csv;charset=utf-8," + csv.join("\n");
+
+            let encodedUri = encodeURI(csvContent);
+            let link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "payments.csv");
+            document.body.appendChild(link);
+
+            link.click();
+            document.body.removeChild(link);
+        });
+    </script>
+}

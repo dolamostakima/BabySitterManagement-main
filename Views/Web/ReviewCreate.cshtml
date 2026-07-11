@@ -1,0 +1,183 @@
+﻿@model int
+@{
+    ViewData["Title"] = "Write Review";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var bookingId = Model;
+}
+
+<div class="container py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">Write a Review</h3>
+        <a href="/Web/ParentBookings" class="btn btn-outline-secondary">Back</a>
+    </div>
+
+    <div class="mb-2 text-muted">
+        Booking ID: <strong>#@bookingId</strong>
+    </div>
+
+    <div id="msg"></div>
+
+    <div id="wrap" class="card shadow-sm border-0" style="display:none;">
+        <div class="card-body">
+            <div class="mb-3">
+                <div class="text-muted small">Sitter</div>
+                <div class="fw-bold fs-5" id="sitterName">-</div>
+                <div class="text-muted" id="sitterEmail">-</div>
+            </div>
+
+            <div class="mb-3 p-3 rounded bg-light border">
+                <div class="small text-muted mb-1">Booking Info</div>
+                <div id="bookingInfo" class="fw-semibold">-</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Rating</label>
+                <select id="rating" class="form-select" style="max-width:180px;">
+                    <option value="5">★★★★★ (5)</option>
+                    <option value="4">★★★★☆ (4)</option>
+                    <option value="3">★★★☆☆ (3)</option>
+                    <option value="2">★★☆☆☆ (2)</option>
+                    <option value="1">★☆☆☆☆ (1)</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Comment (optional)</label>
+                <textarea id="comment"
+                          class="form-control"
+                          rows="5"
+                          maxlength="500"
+                          placeholder="Write your experience..."></textarea>
+                <div class="form-text">
+                    Maximum 500 characters.
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button id="btnSubmit" class="btn btn-primary">Submit Review</button>
+                <a href="/Web/ParentBookings" class="btn btn-outline-dark">Cancel</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const API_ROOT = window.API_BASE || "";
+        const bookingId = @bookingId;
+        const token = (localStorage.getItem("jwt_token") || "").replace(/^"|"$/g, "");
+
+        function setMsg(text, type) {
+            if (!text) {
+                $("#msg").html("");
+                return;
+            }
+
+            let cls = "alert-info";
+            if (type === "success") cls = "alert-success";
+            else if (type === "error") cls = "alert-danger";
+            else if (type === "warning") cls = "alert-warning";
+
+            $("#msg").html(`<div class="alert ${cls}">${text}</div>`);
+        }
+
+        function authHeaders() {
+            return token ? { Authorization: `Bearer ${token}` } : {};
+        }
+
+        function api(method, url, body) {
+            return $.ajax({
+                url: API_ROOT + url,
+                method: method,
+                contentType: "application/json",
+                headers: authHeaders(),
+                data: body ? JSON.stringify(body) : null
+            });
+        }
+
+        function safeDate(v) {
+            if (!v) return "-";
+            return String(v).substring(0, 10);
+        }
+
+        function safeTime(v) {
+            if (!v) return "-";
+            return String(v).substring(0, 5);
+        }
+
+        function loadReviewInfo() {
+            setMsg("", "");
+
+            if (!token) {
+                $("#wrap").hide();
+                setMsg("Please login first.", "error");
+                return;
+            }
+
+            api("GET", `/api/reviews/can-review?bookingId=${bookingId}`)
+                .done(function(r) {
+                    if (!r.can) {
+                        $("#wrap").hide();
+                        setMsg(r.reason || "You cannot review this booking.", "error");
+                        return;
+                    }
+
+                    const booking = r.booking || {};
+                    const sitter = booking.sitter || {};
+
+                    $("#sitterName").text(sitter.fullName || "-");
+                    $("#sitterEmail").text(sitter.email || "-");
+                    $("#bookingInfo").text(
+                        `Date: ${safeDate(booking.bookingDate)} | Time: ${safeTime(booking.startTime)} - ${safeTime(booking.endTime)}`
+                    );
+
+                    $("#wrap").show();
+                })
+                .fail(function(xhr) {
+                    $("#wrap").hide();
+
+                    if (xhr.status === 401) {
+                        setMsg("Session expired. Please login again.", "error");
+                    } else {
+                        setMsg(xhr.responseText || "Failed to load review info.", "error");
+                    }
+                });
+        }
+
+        $("#btnSubmit").on("click", function() {
+            const btn = $(this);
+            const comment = ($("#comment").val() || "").trim();
+
+            const payload = {
+                bookingId: bookingId,
+                rating: parseInt($("#rating").val(), 10),
+                comment: comment ? comment : null
+            };
+
+            btn.prop("disabled", true).text("Submitting...");
+
+            api("POST", "/api/reviews", payload)
+                .done(function(res) {
+                    setMsg("Review submitted successfully.", "success");
+                    btn.text("Submitted");
+
+                    setTimeout(function() {
+                        window.location.href = "/Web/ParentBookings";
+                    }, 1200);
+                })
+                .fail(function(xhr) {
+                    btn.prop("disabled", false).text("Submit Review");
+
+                    if (xhr.status === 401) {
+                        setMsg("Session expired. Please login again.", "error");
+                    } else {
+                        setMsg(xhr.responseText || "Submit failed.", "error");
+                    }
+                });
+        });
+
+        $(document).ready(function() {
+            loadReviewInfo();
+        });
+    </script>
+}

@@ -1,0 +1,230 @@
+﻿@{
+    ViewData["Title"] = "Sitter Panel";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="mb-1">Booking Requests</h3>
+            <p class="text-muted mb-0">Manage your booking requests and track status.</p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="/Web/SitterAvailability" class="btn btn-outline-primary">Availability</a>
+            <a href="/Web/SitterProfile" class="btn btn-outline-secondary">My Profile</a>
+            <a href="/Web/SitterReviews" class="btn btn-warning">My Reviews</a>
+        </div>
+    </div>
+
+    <div id="msg"></div>
+    <div id="list"></div>
+</div>
+
+@section Scripts {
+    <script>
+        const token = (localStorage.getItem("jwt_token") || "").replace(/^"|"$/g, "");
+
+        function authHeaders() {
+            return token ? { Authorization: `Bearer ${token}` } : {};
+        }
+
+        function setMsg(text, type) {
+            let cls = "alert-info";
+            if (type === "ok") cls = "alert-success";
+            if (type === "err") cls = "alert-danger";
+            if (type === "warn") cls = "alert-warning";
+
+            $("#msg").html(`<div class="alert ${cls}">${text}</div>`);
+        }
+
+        function safeDate(v) {
+            if (!v) return "-";
+            return String(v).substring(0, 10);
+        }
+
+        function safeTime(v) {
+            if (!v) return "-";
+            return String(v).substring(0, 5);
+        }
+
+        function normalizeStatus(status) {
+            if (status === null || status === undefined) return "";
+
+            if (typeof status === "string") {
+                const s = status.trim().toLowerCase();
+
+                if (s === "1") return "pending";
+                if (s === "2") return "accepted";
+                if (s === "3") return "rejected";
+                if (s === "4") return "confirmed";
+                if (s === "5") return "completed";
+                if (s === "6") return "cancelled";
+
+                return s;
+            }
+
+            if (typeof status === "number") {
+                switch (status) {
+                    case 1: return "pending";
+                    case 2: return "accepted";
+                    case 3: return "rejected";
+                    case 4: return "confirmed";
+                    case 5: return "completed";
+                    case 6: return "cancelled";
+                    default: return String(status).toLowerCase();
+                }
+            }
+
+            return String(status).trim().toLowerCase();
+        }
+
+        function badge(status) {
+            const s = normalizeStatus(status);
+
+            switch (s) {
+                case "pending":
+                    return `<span class="badge bg-warning text-dark">Pending</span>`;
+                case "accepted":
+                    return `<span class="badge bg-info text-dark">Accepted</span>`;
+                case "rejected":
+                    return `<span class="badge bg-danger">Rejected</span>`;
+                case "confirmed":
+                    return `<span class="badge bg-primary">Confirmed</span>`;
+                case "completed":
+                    return `<span class="badge bg-success">Completed</span>`;
+                case "cancelled":
+                case "canceled":
+                    return `<span class="badge bg-secondary">Cancelled</span>`;
+                default:
+                    return `<span class="badge bg-light text-dark">${status ?? "-"}</span>`;
+            }
+        }
+
+        function actionButtons(b) {
+            const s = normalizeStatus(b.status);
+
+            if (s === "pending") {
+                return `
+                            <button class="btn btn-sm btn-success me-1" onclick="act(${b.id}, 'accept')">Accept</button>
+                            <button class="btn btn-sm btn-danger me-1" onclick="act(${b.id}, 'reject')">Reject</button>
+                        `;
+            }
+
+            if (s === "accepted") {
+                return `
+                            <button class="btn btn-sm btn-primary me-1" onclick="act(${b.id}, 'confirm')">Confirm</button>
+                        `;
+            }
+
+            if (s === "confirmed") {
+                return `
+                            <button class="btn btn-sm btn-secondary me-1" onclick="act(${b.id}, 'complete')">Complete</button>
+                        `;
+            }
+
+            if (s === "completed") {
+                return `<span class="text-success fw-semibold">Done</span>`;
+            }
+
+            if (s === "rejected") {
+                return `<span class="text-danger fw-semibold">Rejected</span>`;
+            }
+
+            if (s === "cancelled") {
+                return `<span class="text-muted fw-semibold">Cancelled</span>`;
+            }
+
+            return `<span class="text-muted">No action</span>`;
+        }
+
+        function load() {
+            if (!token) {
+                setMsg("Please login first.", "err");
+                return;
+            }
+
+            $.ajax({
+                url: API_BASE + "/api/my-bookings/sitter?page=1&pageSize=50",
+                method: "GET",
+                headers: authHeaders()
+            })
+                .done(function(res) {
+                    const items = res.items || [];
+
+                    if (!items.length) {
+                        $("#list").html(`<div class="alert alert-warning">No bookings.</div>`);
+                        return;
+                    }
+
+                    let html = `
+                            <div class="card shadow-sm border-0">
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-hover align-middle mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Id</th>
+                                                    <th>Date</th>
+                                                    <th>Time</th>
+                                                    <th>Status</th>
+                                                    <th>Parent</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                        `;
+
+                    items.forEach(b => {
+                        const parent = b.parent || {};
+
+                        html += `
+                                <tr>
+                                    <td>${b.id}</td>
+                                    <td>${safeDate(b.bookingDate)}</td>
+                                    <td>${safeTime(b.startTime)} - ${safeTime(b.endTime)}</td>
+                                    <td>${badge(b.status)}</td>
+                                    <td>
+                                        <div class="fw-semibold">${parent.fullName || "-"}</div>
+                                        <div class="small text-muted">${parent.phoneNumber || ""}</div>
+                                    </td>
+                                    <td>${actionButtons(b)}</td>
+                                </tr>
+                            `;
+                    });
+
+                    html += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+
+                    $("#list").html(html);
+                })
+                .fail(function(xhr) {
+                    setMsg(xhr.responseText || "Load failed", "err");
+                });
+        }
+
+        window.act = function(id, action) {
+            $.ajax({
+                url: API_BASE + "/api/bookings/" + id + "/" + action,
+                method: "POST",
+                contentType: "application/json",
+                headers: authHeaders(),
+                data: JSON.stringify({ note: "" }),
+                success: function() {
+                    setMsg("Action success: " + action, "ok");
+                    load();
+                },
+                error: function(xhr) {
+                    setMsg(xhr.responseText || "Action failed", "err");
+                }
+            });
+        }
+
+        load();
+    </script>
+}

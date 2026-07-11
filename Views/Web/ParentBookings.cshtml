@@ -1,0 +1,647 @@
+﻿@{
+    ViewData["Title"] = "My Bookings (Parent)";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">My Bookings (Parent)</h3>
+    </div>
+
+    <div id="msg"></div>
+
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Status</label>
+
+                    <select id="status" class="form-select">
+                        <option value="">All</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Accepted">Accepted</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <button type="button"
+                            id="btnLoad"
+                            class="btn btn-primary w-100">
+                        Load
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="list"></div>
+</div>
+
+@section Scripts {
+    <script>
+        const API_ROOT = window.API_BASE || "";
+
+        function getToken() {
+            return (localStorage.getItem("jwt_token") || "")
+                .replace(/^"|"$/g, "")
+                .trim();
+        }
+
+        function authHeaders() {
+            const token = getToken();
+
+            return token
+                ? {
+                    Authorization: `Bearer ${token}`
+                }
+                : {};
+        }
+
+        function setMsg(text, type) {
+            if (!text) {
+                $("#msg").empty();
+                return;
+            }
+
+            let cssClass = "alert-info";
+
+            switch (type) {
+                case "success":
+                    cssClass = "alert-success";
+                    break;
+
+                case "error":
+                    cssClass = "alert-danger";
+                    break;
+
+                case "warning":
+                    cssClass = "alert-warning";
+                    break;
+            }
+
+            $("#msg").html(`
+                <div class="alert ${cssClass} alert-dismissible fade show">
+                    ${htmlEncode(text)}
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="alert">
+                    </button>
+                </div>
+            `);
+        }
+
+        function htmlEncode(value) {
+            if (value === null || value === undefined) {
+                return "";
+            }
+
+            return $("<div>")
+                .text(String(value))
+                .html();
+        }
+
+        function getErrorMessage(xhr, defaultMessage) {
+            if (!xhr) {
+                return defaultMessage;
+            }
+
+            if (xhr.responseJSON) {
+                return xhr.responseJSON.message
+                    || xhr.responseJSON.title
+                    || xhr.responseJSON.error
+                    || defaultMessage;
+            }
+
+            if (xhr.responseText) {
+                try {
+                    const data = JSON.parse(xhr.responseText);
+
+                    return data.message
+                        || data.title
+                        || data.error
+                        || defaultMessage;
+                } catch {
+                    return xhr.responseText;
+                }
+            }
+
+            return defaultMessage;
+        }
+
+        function safeDate(value) {
+            if (!value) {
+                return "-";
+            }
+
+            return String(value).substring(0, 10);
+        }
+
+        function safeTime(value) {
+            if (!value) {
+                return "-";
+            }
+
+            const text = String(value);
+
+            /*
+             * Supports:
+             * 09:30:00
+             * 09:30
+             * 2026-07-10T09:30:00
+             */
+            if (text.includes("T")) {
+                const timePart = text.split("T")[1];
+                return timePart ? timePart.substring(0, 5) : "-";
+            }
+
+            return text.substring(0, 5);
+        }
+
+        function normalizeStatus(status) {
+            if (status === null || status === undefined) {
+                return "";
+            }
+
+            if (typeof status === "string") {
+                return status.trim().toLowerCase();
+            }
+
+            if (typeof status === "number") {
+                switch (status) {
+                    case 1:
+                        return "pending";
+
+                    case 2:
+                        return "accepted";
+
+                    case 3:
+                        return "cancelled";
+
+                    case 5:
+                        return "completed";
+
+                    case 6:
+                        return "cancelled";
+
+                    default:
+                        return String(status).toLowerCase();
+                }
+            }
+
+            if (typeof status === "object") {
+                if (status.name) {
+                    return String(status.name).trim().toLowerCase();
+                }
+
+                if (status.value !== undefined) {
+                    return normalizeStatus(status.value);
+                }
+
+                return "";
+            }
+
+            return String(status).trim().toLowerCase();
+        }
+
+        function displayStatus(status) {
+            const normalizedStatus = normalizeStatus(status);
+
+            switch (normalizedStatus) {
+                case "pending":
+                    return "Pending";
+
+                case "accepted":
+                    return "Accepted";
+
+                case "completed":
+                    return "Completed";
+
+                case "cancelled":
+                case "canceled":
+                    return "Cancelled";
+
+                default:
+                    return status ?? "-";
+            }
+        }
+
+        function statusBadge(status) {
+            const normalizedStatus = normalizeStatus(status);
+
+            switch (normalizedStatus) {
+                case "pending":
+                    return `
+                        <span class="badge bg-warning text-dark">
+                            Pending
+                        </span>
+                    `;
+
+                case "accepted":
+                    return `
+                        <span class="badge bg-info text-dark">
+                            Accepted
+                        </span>
+                    `;
+
+                case "completed":
+                    return `
+                        <span class="badge bg-success">
+                            Completed
+                        </span>
+                    `;
+
+                case "cancelled":
+                case "canceled":
+                    return `
+                        <span class="badge bg-secondary">
+                            Cancelled
+                        </span>
+                    `;
+
+                default:
+                    return `
+                        <span class="badge bg-light text-dark border">
+                            ${htmlEncode(displayStatus(status))}
+                        </span>
+                    `;
+            }
+        }
+
+        function actionHtml(booking) {
+            const bookingId = Number(booking.id || 0);
+            const status = normalizeStatus(booking.status);
+            const hasReview =
+                booking.hasReview === true ||
+                booking.hasReview === "true";
+
+            if (!bookingId) {
+                return `<span class="text-muted">-</span>`;
+            }
+
+            if (status === "accepted") {
+                return `
+                    <button type="button"
+                            id="btnPaid_${bookingId}"
+                            class="btn btn-sm btn-success"
+                            onclick="markPaid(${bookingId})">
+                        Mark Paid
+                    </button>
+                `;
+            }
+
+            if (status === "pending") {
+                return `
+                    <button type="button"
+                            id="btnCancel_${bookingId}"
+                            class="btn btn-sm btn-danger"
+                            onclick="cancelBooking(${bookingId})">
+                        Cancel
+                    </button>
+                `;
+            }
+
+            if (status === "completed" && !hasReview) {
+                return `
+                    <a href="/Web/ReviewCreate/${bookingId}"
+                       class="btn btn-sm btn-success">
+                        Write Review
+                    </a>
+                `;
+            }
+
+            if (status === "completed" && hasReview) {
+                return `
+                    <span class="badge bg-secondary">
+                        Reviewed
+                    </span>
+                `;
+            }
+
+            return `<span class="text-muted">-</span>`;
+        }
+
+        function buildTable(items) {
+            let html = `
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width:70px;">Id</th>
+                                        <th style="width:120px;">Date</th>
+                                        <th style="width:150px;">Time</th>
+                                        <th style="width:120px;">Status</th>
+                                        <th>Sitter</th>
+                                        <th style="width:110px;">Rate</th>
+                                        <th style="width:150px;">Action</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+            `;
+
+            items.forEach(function (booking) {
+                const sitter = booking.sitter || {};
+
+                const sitterName =
+                    sitter.fullName ||
+                    sitter.FullName ||
+                    booking.sitterName ||
+                    "-";
+
+                const sitterEmail =
+                    sitter.email ||
+                    sitter.Email ||
+                    "";
+
+                const hourlyRate =
+                    sitter.hourlyRate ??
+                    sitter.HourlyRate ??
+                    booking.hourlyRate ??
+                    "-";
+
+                html += `
+                    <tr>
+                        <td>${htmlEncode(booking.id ?? "-")}</td>
+
+                        <td>
+                            ${htmlEncode(safeDate(
+                                booking.bookingDate ?? booking.BookingDate
+                            ))}
+                        </td>
+
+                        <td>
+                            ${htmlEncode(safeTime(
+                                booking.startTime ?? booking.StartTime
+                            ))}
+
+                            -
+
+                            ${htmlEncode(safeTime(
+                                booking.endTime ?? booking.EndTime
+                            ))}
+                        </td>
+
+                        <td>
+                            ${statusBadge(
+                                booking.status ?? booking.Status
+                            )}
+                        </td>
+
+                        <td>
+                            <div class="fw-semibold">
+                                ${htmlEncode(sitterName)}
+                            </div>
+
+                            <div class="small text-muted">
+                                ${htmlEncode(sitterEmail)}
+                            </div>
+                        </td>
+
+                        <td>
+                            ${htmlEncode(hourlyRate)}
+                        </td>
+
+                        <td>
+                            ${actionHtml({
+                                ...booking,
+                                id: booking.id ?? booking.Id,
+                                status: booking.status ?? booking.Status,
+                                hasReview:
+                                    booking.hasReview ??
+                                    booking.HasReview
+                            })}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            $("#list").html(html);
+        }
+
+        function markPaid(id) {
+            if (!id) {
+                setMsg("Invalid booking id.", "error");
+                return;
+            }
+
+            const confirmed = confirm(
+                "Are you sure you want to mark this booking payment as paid?"
+            );
+
+            if (!confirmed) {
+                return;
+            }
+
+            const button = $(`#btnPaid_${id}`);
+            const oldHtml = button.html();
+
+            button
+                .prop("disabled", true)
+                .html(`
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                    Saving...
+                `);
+
+            /*
+             * আপনার API যদি parent-specific হয়, URL পরিবর্তন করুন:
+             * /api/my-bookings/parent/${id}/payment/mark-paid
+             *
+             * বর্তমান URL আপনার original code অনুযায়ী রাখা হয়েছে।
+             */
+            $.ajax({
+                url: `${API_ROOT}/api/admin/bookings/${id}/payment/mark-paid`,
+                method: "POST",
+                headers: authHeaders(),
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify({
+                    method: "Cash"
+                })
+            })
+            .done(function () {
+                setMsg("Payment marked as paid successfully.", "success");
+                loadBookings();
+            })
+            .fail(function (xhr) {
+                setMsg(
+                    getErrorMessage(xhr, "Payment update failed."),
+                    "error"
+                );
+
+                button
+                    .prop("disabled", false)
+                    .html(oldHtml);
+            });
+        }
+
+        function cancelBooking(id) {
+            if (!id) {
+                setMsg("Invalid booking id.", "error");
+                return;
+            }
+
+            const confirmed = confirm(
+                "Are you sure you want to cancel this booking?"
+            );
+
+            if (!confirmed) {
+                return;
+            }
+
+            const button = $(`#btnCancel_${id}`);
+            const oldHtml = button.html();
+
+            button
+                .prop("disabled", true)
+                .html(`
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                    Cancelling...
+                `);
+
+            /*
+             * API endpoint আপনার Controller route অনুযায়ী পরিবর্তন করতে পারেন।
+             */
+            $.ajax({
+                url: `${API_ROOT}/api/my-bookings/parent/${id}/cancel`,
+                method: "POST",
+                headers: authHeaders(),
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify({})
+            })
+            .done(function () {
+                setMsg("Booking cancelled successfully.", "success");
+                loadBookings();
+            })
+            .fail(function (xhr) {
+                setMsg(
+                    getErrorMessage(xhr, "Booking cancellation failed."),
+                    "error"
+                );
+
+                button
+                    .prop("disabled", false)
+                    .html(oldHtml);
+            });
+        }
+
+        function loadBookings() {
+            setMsg("", "");
+
+            $("#list").html(`
+                <div class="card shadow-sm border-0">
+                    <div class="card-body text-center py-4">
+                        <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                        <span class="text-muted">Loading bookings...</span>
+                    </div>
+                </div>
+            `);
+
+            const token = getToken();
+
+            if (!token) {
+                $("#list").empty();
+                setMsg("Please login first.", "error");
+                return;
+            }
+
+            const status = $("#status").val();
+
+            let url =
+                `${API_ROOT}/api/my-bookings/parent?page=1&pageSize=50`;
+
+            if (status) {
+                url += `&status=${encodeURIComponent(status)}`;
+            }
+
+            $("#btnLoad")
+                .prop("disabled", true)
+                .html(`
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                    Loading...
+                `);
+
+            $.ajax({
+                url: url,
+                method: "GET",
+                headers: authHeaders()
+            })
+            .done(function (response) {
+                /*
+                 * Supports:
+                 * { items: [] }
+                 * { Items: [] }
+                 * Direct array []
+                 */
+                const items = Array.isArray(response)
+                    ? response
+                    : response?.items || response?.Items || [];
+
+                if (!items.length) {
+                    $("#list").html(`
+                        <div class="alert alert-warning mb-0">
+                            No bookings found.
+                        </div>
+                    `);
+
+                    return;
+                }
+
+                buildTable(items);
+            })
+            .fail(function (xhr) {
+                $("#list").empty();
+
+                if (xhr.status === 401) {
+                    setMsg(
+                        "Session expired. Please login again.",
+                        "error"
+                    );
+
+                    return;
+                }
+
+                if (xhr.status === 403) {
+                    setMsg(
+                        "You do not have permission to view these bookings.",
+                        "error"
+                    );
+
+                    return;
+                }
+
+                setMsg(
+                    getErrorMessage(xhr, "Failed to load bookings."),
+                    "error"
+                );
+            })
+            .always(function () {
+                $("#btnLoad")
+                    .prop("disabled", false)
+                    .html("Load");
+            });
+        }
+
+        $(document).ready(function () {
+            $("#btnLoad").on("click", function () {
+                loadBookings();
+            });
+
+            $("#status").on("change", function () {
+                loadBookings();
+            });
+
+            loadBookings();
+        });
+    </script>
+}

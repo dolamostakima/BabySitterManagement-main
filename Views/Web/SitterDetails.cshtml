@@ -1,0 +1,104 @@
+﻿@model int
+@{
+    ViewData["Title"] = "Sitter Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var sitterId = Model;
+}
+
+<h3>Sitter Details</h3>
+<div id="msg"></div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card p-3">
+            <div id="details">Loading...</div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card p-3">
+            <h5>Send Booking Request</h5>
+
+            <div class="mb-2">
+                <label>Date</label>
+                <input id="date" type="date" class="form-control" />
+            </div>
+            <div class="mb-2">
+                <label>Start Time</label>
+                <input id="start" type="time" class="form-control" />
+            </div>
+            <div class="mb-2">
+                <label>End Time</label>
+                <input id="end" type="time" class="form-control" />
+            </div>
+
+            <div class="mb-2">
+                <label>Service Address</label>
+                <input id="address" class="form-control" placeholder="House/Area..." />
+            </div>
+
+            <div class="mb-3">
+                <label>Notes</label>
+                <textarea id="notes" class="form-control"></textarea>
+            </div>
+
+            <button id="btnBook" class="btn btn-success">Request Booking</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const sitterId = @sitterId;
+
+        function parseTime(t) {
+            if (!t) return null;
+            return t.length === 5 ? (t + ":00") : t;
+        }
+
+        function loadDetails() {
+            $.get(API_BASE + "/api/sitters/" + sitterId)
+                .done(function (s) {
+                    $("#details").html(`
+                        <h5>${s.fullName}</h5>
+                        <div>Email: ${s.email}</div>
+                        <div>Phone: ${s.phone}</div>
+                        <div>Rate: <b>${s.hourlyRate}</b></div>
+                        <div>Exp: ${s.experienceYears} years</div>
+                        <div>Location: ${s.locationText}</div>
+                        <div>Rating: ${s.avgRating} (${s.reviewCount})</div>
+                        <div class="mt-2"><span class="badge bg-${s.isApproved ? "success" : "secondary"}">${s.isApproved ? "Approved" : "Not Approved"}</span></div>
+                    `);
+                })
+                .fail(function (xhr) {
+                    showMsg("#msg", xhr.responseText || "Failed to load details", "err");
+                });
+        }
+
+        $("#btnBook").click(function () {
+            const payload = {
+                babySitterProfileId: sitterId,
+                bookingDate: $("#date").val(),
+                startTime: parseTime($("#start").val()),
+                endTime: parseTime($("#end").val()),
+                serviceAddressText: $("#address").val(),
+                notes: $("#notes").val()
+            };
+
+            $.ajax({
+                url: API_BASE + "/api/bookings",
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                success: function (res) {
+                    showMsg("#msg", "Booking request sent! BookingId: " + res.bookingId, "ok");
+                },
+                error: function (xhr) {
+                    showMsg("#msg", xhr.responseText || "Booking failed", "err");
+                }
+            });
+        });
+
+        loadDetails();
+    </script>
+}

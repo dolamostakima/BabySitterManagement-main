@@ -1,0 +1,107 @@
+﻿@{
+    ViewData["Title"] = "Admin - Users";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h3>Users</h3>
+
+<div class="card p-3 mb-3">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-3">
+            <label>Search</label>
+            <input id="query" class="form-control" placeholder="Search name/email/phone" />
+        </div>
+        <div class="col-md-3">
+            <label>From</label>
+            <input id="from" type="date" class="form-control" />
+        </div>
+
+        <div class="col-md-3">
+            <label>To</label>
+            <input id="to" type="date" class="form-control" />
+        </div>
+
+        <div class="col-md-3 d-flex gap-2">
+
+            <button id="btnLoad" class="btn btn-primary w-50">🔍︎</button>
+
+            <button id="btnDownload" class="btn btn-primary w-50">🡻</button>
+        </div>
+    </div>
+</div>
+
+<div id="msg"></div>
+<div id="list"></div>
+
+@section Scripts {
+    <script>
+        function load() {
+            const query = $("#query").val();
+            const url = "/api/admin/users" + (query ? ("?query=" + encodeURIComponent(query)) : "");
+
+            $.get(url)
+                .done(function(items) {
+                    if (!items.length) {
+                        $("#list").html(`<div class="alert alert-warning">No users.</div>`);
+                        return;
+                    }
+
+                    let html = `<table class="table table-bordered">
+                      <thead><tr>
+                        <th>Id</th><th>Name</th><th>Email</th><th>Phone</th><th>Roles</th><th>Created</th>
+                      </tr></thead><tbody>`;
+
+                    items.forEach(u => {
+                        html += `<tr>
+                          <td>${u.id}</td>
+                          <td>${u.fullName}</td>
+                          <td>${u.email || ""}</td>
+                          <td>${u.phoneNumber || ""}</td>
+                          <td>${(u.roles || []).join(", ")}</td>
+                          <td>${(u.createdAt || "").toString().substring(0,10)}</td>
+                        </tr>`;
+                    });
+
+                    html += `</tbody></table>`;
+                    $("#list").html(html);
+                })
+                .fail(function(xhr) {
+                    showMsg("#msg", xhr.responseText || "Load failed", "err");
+                });
+        }
+
+        $("#btnLoad").click(load);
+        load();
+         $("#btnDownload").click(function () {
+
+            let table = document.querySelector("table");
+            if (!table) {
+                alert("No data to download");
+                return;
+            }
+
+            let rows = table.querySelectorAll("tr");
+            let csv = [];
+
+            rows.forEach(row => {
+                let cols = row.querySelectorAll("th, td");
+                let rowData = [];
+                cols.forEach(col => {
+                    rowData.push(col.innerText);
+                });
+                csv.push(rowData.join(","));
+            });
+
+            let csvContent = "data:text/csv;charset=utf-8," + csv.join("\n");
+
+            let encodedUri = encodeURI(csvContent);
+            let link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "payments.csv");
+            document.body.appendChild(link);
+
+            link.click();
+            document.body.removeChild(link);
+        });
+    </script>
+}
