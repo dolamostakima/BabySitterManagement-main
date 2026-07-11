@@ -8,7 +8,7 @@ namespace SmartBabySitter.Controllers
     {
         public IActionResult ParentPayment()
         {
-            return View();
+            return View("~/Views/Web/ParentPayment.cshtml");
         }
     }
 }

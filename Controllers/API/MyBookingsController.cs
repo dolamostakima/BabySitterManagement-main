@@ -54,6 +54,7 @@ public class MyBookingsController : ControllerBase
                 b.StartTime,
                 b.EndTime,
                 b.Status,
+                StatusName = b.Status.ToString(),
                 b.TotalAmount,
                 b.CreatedAt,
                 b.ServiceAddressText,
@@ -114,6 +115,7 @@ public class MyBookingsController : ControllerBase
                 b.StartTime,
                 b.EndTime,
                 b.Status,
+                StatusName = b.Status.ToString(),
                
                 b.TotalAmount,
                 b.CreatedAt,

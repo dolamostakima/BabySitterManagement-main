@@ -3,4 +3,193 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Parent Payment Page</h2>
+<div class="container mt-4">
+
+    <div class="card shadow p-4">
+
+        <h3 class="mb-4 text-center">
+            Payment
+        </h3>
+
+        <form id="paymentForm">
+
+            <div class="mb-3">
+                <label class="form-label">Booking</label>
+                <select id="bookingId" class="form-select">
+                    <option value="">-- Select Booking --</option>
+                </select>
+            </div>
+
+            <div class="card bg-light mb-3 d-none" id="bookingInfo">
+
+                <div class="card-body">
+
+                    <div class="row">
+
+                        <div class="col-md-6">
+                            <p><strong>Sitter:</strong> <span id="sitterName">-</span></p>
+                        </div>
+
+                        <div class="col-md-6">
+                            <p><strong>Booking Date:</strong> <span id="bookingDate">-</span></p>
+                        </div>
+
+                        <div class="col-md-6">
+                            <p><strong>Time:</strong> <span id="bookingTime">-</span></p>
+                        </div>
+
+                        <div class="col-md-6">
+                            <p><strong>Status:</strong> <span id="bookingStatus">-</span></p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Amount</label>
+                <input type="number"
+                       id="amount"
+                       class="form-control"
+                       readonly />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Payment Method</label>
+
+                <select id="method" class="form-select">
+
+                    <option value="">Select Payment Method</option>
+
+                    <option value="SSLCommerz">
+                        SSLCommerz (bKash / Nagad / Card)
+                    </option>
+
+                    <option value="Cash">
+                        Cash
+                    </option>
+
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Transaction ID</label>
+
+                <input type="text"
+                       id="transactionId"
+                       class="form-control"
+                       placeholder="Enter Transaction ID (if applicable)" />
+            </div>
+
+            <button type="submit"
+                    class="btn btn-primary w-100">
+
+                Proceed To Payment
+
+            </button>
+
+           
+
+        </form>
+
+    </div>
+
+</div>
+
+@section Scripts {
+
+    <script>
+
+        function loadBookings() {
+
+            $.get("/api/my-bookings/parent")
+
+                .done(function (res) {
+
+                    $("#bookingId").html(
+                        '<option value="">Select Booking</option>'
+                    );
+
+                    res.items.forEach(function (b) {
+
+                        $("#bookingId").append(`
+                            <option value="${b.id}"
+                                data-sitter="${b.sitter.fullName}"
+                                data-date="${b.bookingDate}"
+                                data-start="${b.startTime}"
+                                data-end="${b.endTime}"
+                              data-status="${b.statusName}"
+
+                              $("#bookingStatus").text(op.data("status"));
+
+                                data-amount="${b.totalAmount}">
+
+                                ${b.sitter.fullName} |
+                                ${b.bookingDate.substring(0,10)} |
+                                ${b.startTime.substring(0,5)} -
+                                ${b.endTime.substring(0,5)}
+
+                            </option>
+                        `);
+
+                    });
+
+                })
+
+                .fail(function () {
+
+                    alert("Booking load failed");
+
+                });
+
+        }
+
+        $(document).ready(function () {
+
+            loadBookings();
+
+        });
+
+        $("#bookingId").change(function () {
+
+            let op = $(this).find("option:selected");
+
+            if (!op.val()) {
+
+                $("#bookingInfo").addClass("d-none");
+                $("#amount").val("");
+                return;
+
+            }
+
+            $("#bookingInfo").removeClass("d-none");
+
+            $("#sitterName").text(op.data("sitter"));
+
+            $("#bookingDate").text(op.data("date").substring(0,10));
+
+            $("#bookingTime").text(
+                op.data("start").substring(0,5) +
+                " - " +
+                op.data("end").substring(0,5)
+            );
+
+            $("#bookingStatus").text(op.data("status"));
+
+            $("#amount").val(op.data("amount"));
+
+        });
+
+        $("#paymentForm").submit(function (e) {
+
+            e.preventDefault();
+
+            alert("Next Step: Payment API");
+
+        });
+
+    </script>
+
+}
