@@ -4,6 +4,9 @@
 		<TargetFramework>net9.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<UserSecretsId>3795035f-f7fd-4fed-8273-4ea88e61fa37</UserSecretsId>
+		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+		<DockerfileContext>.</DockerfileContext>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -38,6 +41,8 @@
 		</PackageReference>
 
 		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.5" />
+
+		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.22.1" />
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.7.0" />
 
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
