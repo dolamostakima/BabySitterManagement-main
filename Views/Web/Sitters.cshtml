@@ -45,10 +45,46 @@
 
 @section Scripts {
     <script>
+
+                const token = (localStorage.getItem("jwt_token") || "").replace(/^"|"$/g, "");
+
+                let favoriteIds = [];
+
+        function getAuthHeaders() {
+            return token
+                ? { Authorization: `Bearer ${token}` }
+                : {};
+        }
+
         function parseTime(t) {
             if (!t) return null;
             // API DTO expects TimeSpan, JSON can be "HH:mm:ss"
             return t.length === 5 ? (t + ":00") : t;
+        }
+
+                function loadFavorites() {
+
+            $.ajax({
+                url: API_BASE + "/api/favorites/me?page=1&pageSize=100",
+                method: "GET",
+                headers: getAuthHeaders(),
+
+                success: function (res) {
+
+                    favoriteIds = (res.items || [])
+                        .map(x => x.babySitterProfileId);
+
+                    loadSitters();
+                },
+
+                error: function () {
+
+                    favoriteIds = [];
+
+                    loadSitters();
+                }
+            });
+
         }
 
         function loadSitters() {
@@ -91,6 +127,9 @@
 
             let html = `<div class="row g-3">`;
             items.forEach(s => {
+
+                const isFavorite = favoriteIds.includes(s.babySitterProfileId);
+
                 html += `
                   <div class="col-md-4">
                     <div class="card p-3 h-100">
@@ -99,7 +138,18 @@
                       <div>Exp: ${s.experienceYears} years</div>
                       <div>Location: ${s.locationText}</div>
                       <div>Rating: ${s.avgRating} (${s.reviewCount})</div>
-                      <a class="btn btn-sm btn-outline-primary mt-2" href="/Web/SitterDetails/${s.babySitterProfileId}">Details & Booking</a>
+                              <div class="d-flex gap-2 mt-2">
+            <a class="btn btn-sm btn-outline-primary flex-fill"
+               href="/Web/SitterDetails/${s.babySitterProfileId}">
+                Details & Booking
+            </a>
+
+                    <button class="btn btn-sm ${isFavorite ? 'btn-danger' : 'btn-outline-danger'} favorite-btn"
+                data-id="${s.babySitterProfileId}">
+            <i class="bi ${isFavorite ? 'bi-heart-fill' : 'bi-heart'}"></i>
+        </button>
+        </div>
+
                     </div>
                   </div>`;
             });
@@ -107,7 +157,51 @@
             $("#result1").html(html);
         }
 
-        $("#btnSearch").click(loadSitters);
-        loadSitters();
+              $("#btnSearch").click(loadSitters);
+
+        loadFavorites();
+
+                       $(document).on("click", ".favorite-btn", function () {
+
+            const btn = $(this);
+            const sitterId = btn.data("id");
+
+            const isFavorite = btn.hasClass("btn-danger");
+
+            $.ajax({
+                url: API_BASE + "/api/favorites/" + sitterId,
+                method: isFavorite ? "DELETE" : "POST",
+                headers: getAuthHeaders(),
+
+                success: function () {
+
+                    if (isFavorite) {
+
+                        btn.removeClass("btn-danger")
+                           .addClass("btn-outline-danger");
+
+                        btn.html('<i class="bi bi-heart"></i>');
+
+                        favoriteIds = favoriteIds.filter(x => x !== sitterId);
+
+                    } else {
+
+                        btn.removeClass("btn-outline-danger")
+                           .addClass("btn-danger");
+
+                        btn.html('<i class="bi bi-heart-fill"></i>');
+
+                        favoriteIds.push(sitterId);
+                    }
+
+                },
+
+                error: function (xhr) {
+                    alert(xhr.responseText || "Operation failed.");
+                }
+            });
+
+        });
+
     </script>
 }
