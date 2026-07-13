@@ -48,33 +48,68 @@
             return String(v).substring(0, 5);
         }
 
-        function normalizeStatus(status) {
-            if (status === null || status === undefined) return "";
+               function normalizeStatus(status) {
+
+            if (status === null || status === undefined)
+                return "";
+
 
             if (typeof status === "string") {
+
                 const s = status.trim().toLowerCase();
 
                 if (s === "1") return "pending";
                 if (s === "2") return "accepted";
                 if (s === "3") return "rejected";
                 if (s === "4") return "confirmed";
-                if (s === "5") return "completed";
-                if (s === "6") return "cancelled";
+                if (s === "5") return "paymentpending";
+                if (s === "6") return "completed";
+                if (s === "7") return "cancelled";
 
                 return s;
             }
 
+
             if (typeof status === "number") {
-                switch (status) {
-                    case 1: return "pending";
-                    case 2: return "accepted";
-                    case 3: return "rejected";
-                    case 4: return "confirmed";
-                    case 5: return "completed";
-                    case 6: return "cancelled";
-                    default: return String(status).toLowerCase();
+
+                switch(status) {
+
+                    case 1:
+                        return "pending";
+
+                    case 2:
+                        return "accepted";
+
+                    case 3:
+                        return "rejected";
+
+                    case 4:
+                        return "confirmed";
+
+                    case 5:
+                        return "paymentpending";
+
+                    case 6:
+                        return "completed";
+
+                    case 7:
+                        return "cancelled";
+
+                    default:
+                        return String(status).toLowerCase();
                 }
             }
+
+
+            if (typeof status === "object") {
+
+                if(status.name)
+                    return String(status.name).toLowerCase();
+
+                if(status.value !== undefined)
+                    return normalizeStatus(status.value);
+            }
+
 
             return String(status).trim().toLowerCase();
         }
@@ -91,6 +126,10 @@
                     return `<span class="badge bg-danger">Rejected</span>`;
                 case "confirmed":
                     return `<span class="badge bg-primary">Confirmed</span>`;
+
+                        case "paymentpending":
+        return `<span class="badge bg-warning text-dark">Payment Pending</span>`;
+
                 case "completed":
                     return `<span class="badge bg-success">Completed</span>`;
                 case "cancelled":

@@ -159,7 +159,7 @@
             return text.substring(0, 5);
         }
 
-        function normalizeStatus(status) {
+                function normalizeStatus(status) {
             if (status === null || status === undefined) {
                 return "";
             }
@@ -170,6 +170,7 @@
 
             if (typeof status === "number") {
                 switch (status) {
+
                     case 1:
                         return "pending";
 
@@ -177,12 +178,18 @@
                         return "accepted";
 
                     case 3:
-                        return "cancelled";
+                        return "rejected";
+
+                    case 4:
+                        return "confirmed";
 
                     case 5:
-                        return "completed";
+                        return "paymentpending";
 
                     case 6:
+                        return "completed";
+
+                    case 7:
                         return "cancelled";
 
                     default:
@@ -191,6 +198,7 @@
             }
 
             if (typeof status === "object") {
+
                 if (status.name) {
                     return String(status.name).trim().toLowerCase();
                 }
@@ -205,15 +213,26 @@
             return String(status).trim().toLowerCase();
         }
 
-        function displayStatus(status) {
+                function displayStatus(status) {
+
             const normalizedStatus = normalizeStatus(status);
 
             switch (normalizedStatus) {
+
                 case "pending":
                     return "Pending";
 
                 case "accepted":
                     return "Accepted";
+
+                case "confirmed":
+                    return "Confirmed";
+
+                case "paymentpending":
+                    return "Payment Pending";
+
+                case "rejected":
+                    return "Rejected";
 
                 case "completed":
                     return "Completed";
@@ -226,17 +245,19 @@
                     return status ?? "-";
             }
         }
+               function statusBadge(status) {
 
-        function statusBadge(status) {
             const normalizedStatus = normalizeStatus(status);
 
             switch (normalizedStatus) {
+
                 case "pending":
                     return `
                         <span class="badge bg-warning text-dark">
                             Pending
                         </span>
                     `;
+
 
                 case "accepted":
                     return `
@@ -245,12 +266,38 @@
                         </span>
                     `;
 
+
+                case "confirmed":
+                    return `
+                        <span class="badge bg-primary">
+                            Confirmed
+                        </span>
+                    `;
+
+
+                case "paymentpending":
+                    return `
+                        <span class="badge bg-warning text-dark">
+                            Payment Pending
+                        </span>
+                    `;
+
+
+                case "rejected":
+                    return `
+                        <span class="badge bg-danger">
+                            Rejected
+                        </span>
+                    `;
+
+
                 case "completed":
                     return `
                         <span class="badge bg-success">
                             Completed
                         </span>
                     `;
+
 
                 case "cancelled":
                 case "canceled":
@@ -259,6 +306,7 @@
                             Cancelled
                         </span>
                     `;
+
 
                 default:
                     return `
@@ -280,27 +328,26 @@
                 return `<span class="text-muted">-</span>`;
             }
 
-            if (status === "accepted") {
-                return `
-                    <button type="button"
-                            id="btnPaid_${bookingId}"
-                            class="btn btn-sm btn-success"
-                            onclick="markPaid(${bookingId})">
-                        Mark Paid
-                    </button>
-                `;
-            }
+                  if (status === "accepted") {
+            return `
+                <a href="/Web/ParentPayment?bookingId=${bookingId}"
+                   class="btn btn-sm btn-success">
+                    💳 Pay Now
+                </a>
+            `;
+        }
 
-            if (status === "pending") {
-                return `
-                    <button type="button"
-                            id="btnCancel_${bookingId}"
-                            class="btn btn-sm btn-danger"
-                            onclick="cancelBooking(${bookingId})">
-                        Cancel
-                    </button>
-                `;
-            }
+        if (status === "pending") {
+            return `
+                <button type="button"
+                        id="btnCancel_${bookingId}"
+                        class="btn btn-sm btn-danger"
+                        onclick="cancelBooking(${bookingId})">
+                    Cancel
+                </button>
+            `;
+        }
+
 
             if (status === "completed" && !hasReview) {
                 return `

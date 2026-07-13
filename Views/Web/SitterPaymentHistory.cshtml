@@ -1,0 +1,148 @@
+﻿@{
+    ViewData["Title"] = "Sitter Payment History";
+}
+
+<div class="container mt-4">
+
+    <h3 class="mb-4">
+        Sitter Payment History
+    </h3>
+
+    <div class="table-responsive">
+    <table class="table table-bordered table-striped" id="tblPayments">
+
+        <thead>
+            <tr>
+                <th>Booking</th>
+                <th>Parent</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th>Status</th>
+                <th>Transaction</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+
+
+        <tbody>
+        </tbody>
+
+
+    </table>
+    </div>
+
+</div>
+
+
+@section Scripts {
+
+    <script>
+
+
+        $(document).ready(function(){
+
+            loadSitterPaymentHistory();
+
+        });
+
+
+        async function loadSitterPaymentHistory(){
+
+
+            const token = (localStorage.getItem("jwt_token") || "")
+                .replace(/^"|"$/g,"");
+
+
+            const response = await fetch(
+                "/api/payments/sitter/history",
+                {
+                    headers:{
+                        "Authorization":"Bearer " + token
+                    }
+                }
+            );
+
+
+            if(!response.ok){
+
+                alert("Payment history load failed");
+                return;
+
+            }
+
+
+            const data = await response.json();
+
+
+            let rows="";
+
+
+            data.forEach(p=>{
+
+
+                rows += `
+
+                <tr>
+
+                    <td>
+                        ${p.bookingId}
+                    </td>
+
+
+                    <td>
+                        ${p.parentName}
+                    </td>
+
+
+                    <td>
+                        ৳ ${p.amount}
+                    </td>
+
+
+                    <td>
+                        ${p.method}
+                    </td>
+
+
+                    <td>
+
+                        ${
+                            p.status === "Paid"
+                            ?
+                            '<span class="badge bg-success">Paid</span>'
+                            :
+                            '<span class="badge bg-warning">Pending</span>'
+                        }
+
+                    </td>
+
+
+                    <td>
+                        ${p.transactionId ?? "-"}
+                    </td>
+
+
+                    <td>
+                        ${new Date(p.createdAt).toLocaleDateString()}
+                    </td>
+
+
+                </tr>
+
+                `;
+
+
+            });
+
+
+
+            document.querySelector("#tblPayments tbody")
+                .innerHTML = rows;
+
+
+        }
+
+
+    </script>
+
+}

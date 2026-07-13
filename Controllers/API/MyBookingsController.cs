@@ -76,6 +76,38 @@ public class MyBookingsController : ControllerBase
         return Ok(new { total, page = p, pageSize = size, items });
     }
 
+    [Authorize(Roles = "Parent")]
+    [HttpGet("parent/payment")]
+    public async Task<IActionResult> ParentPaymentBookings()
+    {
+        var items = await _db.Bookings
+            .AsNoTracking()
+            .Include(b => b.BabySitterProfile)
+            .ThenInclude(s => s.User)
+            .Where(b =>
+                b.ParentUserId == _me.UserId &&
+                (b.Status == BookingStatus.Accepted ||
+                 b.Status == BookingStatus.Confirmed))
+            .OrderByDescending(b => b.CreatedAt)
+            .Select(b => new
+            {
+                b.Id,
+                b.BookingDate,
+                b.StartTime,
+                b.EndTime,
+                b.Status,
+                StatusName = b.Status.ToString(),
+                b.TotalAmount,
+                Sitter = new
+                {
+                    b.BabySitterProfile.User.FullName
+                }
+            })
+            .ToListAsync();
+
+        return Ok(new { items });
+    }
+
     // GET: api/my-bookings/sitter
     [Authorize(Roles = "BabySitter")]
     [HttpGet("sitter")]

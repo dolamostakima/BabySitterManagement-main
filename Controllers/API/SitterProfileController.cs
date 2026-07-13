@@ -43,12 +43,13 @@ public class SitterProfileController : ControllerBase
         {
             fullName = user.FullName,
             email = user.Email,
-            mobileNo = user.PhoneNumber,
+            
 
-            nid = profile?.Nid,
-            gender = profile?.Gender,
-            dateOfBirth = profile?.DateOfBirth,
-            address = profile?.Address,
+            nidNo = user.NidNo,
+            gender = user.Gender,
+            dateOfBirth = user.DateOfBirth,
+            address = user.Address,
+            phoneNo = user.PhoneNo,
 
             photoUrl = babyProfile?.PhotoUrl,
 
@@ -89,6 +90,17 @@ public class SitterProfileController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(dto.MobileNo))
             user.PhoneNumber = dto.MobileNo;
+
+        user.NidNo = dto.Nid;
+        user.Gender = dto.Gender;
+        user.Address = dto.Address;
+
+        if (dto.DateOfBirth.HasValue)
+        {
+            user.DateOfBirth = dto.DateOfBirth.Value.ToString("yyyy-MM-dd");
+        }
+
+        user.PhoneNo = dto.MobileNo;
 
         // ===== Get or Create Profile =====
         var profile = await _context.SitterProfiles

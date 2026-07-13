@@ -330,15 +330,14 @@
                 }
 
         // User Information
-        $("#fullName").val(p.fullName || "");
+                $("#fullName").val(p.fullName || "");
         $("#email").val(p.email || "");
-        $("#mobile").val(p.mobileNo || "");
+        $("#mobile").val(p.phoneNo || "");
 
-        $("#nid").val(p.nid || "");
+        $("#nid").val(p.nidNo || "");
         $("#gender").val(p.gender || "");
         $("#dob").val(p.dateOfBirth ? p.dateOfBirth.substring(0,10) : "");
         $("#address").val(p.address || "");
-
         // Profile Information
         $("#skillsText").val(p.skillsText || "");
         $("#skills").val((p.skills || []).join(", "));
@@ -408,9 +407,8 @@
                     // User Information
         formData.append("FullName", $("#fullName").val());
         formData.append("Email", $("#email").val());
-        formData.append("MobileNo", $("#mobile").val());
-
-        formData.append("Nid", $("#nid").val());
+        formData.append("PhoneNo", $("#mobile").val());
+        formData.append("NidNo", $("#nid").val());
         formData.append("Gender", $("#gender").val());
         formData.append("DateOfBirth", $("#dob").val());
         formData.append("Address", $("#address").val());

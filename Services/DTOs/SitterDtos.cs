@@ -53,13 +53,22 @@ public class SitterProfileUpsertDto
 
 public record MySitterProfileDto(
     int Id,
+
+    string FullName,
+    string Email,
+    string PhoneNo,
+    string NidNo,
+    string Gender,
+    string DateOfBirth,
+    string Address,
+
     string SkillsText,
     int ExperienceYears,
     decimal HourlyRate,
     string LocationText,
     double? Latitude,
     double? Longitude,
+
     List<string> Skills,
     List<AvailabilityDto> Availabilities
 );
-

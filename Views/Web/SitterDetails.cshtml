@@ -38,8 +38,22 @@
             </div>
 
             <div class="mb-3">
-                <label>Notes</label>
-                <textarea id="notes" class="form-control"></textarea>
+                <label for="notes" class="form-label">Notes <span class="text-danger">*</span></label>
+                <textarea id="notes"
+                          class="form-control"
+                          rows="5"
+                          placeholder="Please details your baby such as:
+                            • Age
+                            • Gender (Boy/Girl)
+                            • Whether your child has any special needs
+                            • Allergies or medical conditions (if any)
+                            • Food preferences or dietary restrictions
+                            • Sleeping routine
+                            • Any important instructions for the babysitter"
+                          required></textarea>
+                <div class="invalid-feedback">
+                    Please provide information about your baby before submitting.
+                </div>
             </div>
 
             <button id="btnBook" class="btn btn-success">Request Booking</button>
@@ -76,6 +90,43 @@
         }
 
         $("#btnBook").click(function () {
+
+                    $("#btnBook").click(function () {
+
+            const notes = $("#notes").val().trim();
+
+            if (notes === "") {
+                $("#notes").addClass("is-invalid");
+                $("#notes").focus();
+                return;
+            } else {
+                $("#notes").removeClass("is-invalid");
+            }
+
+            const payload = {
+                babySitterProfileId: sitterId,
+                bookingDate: $("#date").val(),
+                startTime: parseTime($("#start").val()),
+                endTime: parseTime($("#end").val()),
+                serviceAddressText: $("#address").val(),
+                notes: notes
+            };
+
+            $.ajax({
+                url: API_BASE + "/api/bookings",
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                success: function (res) {
+                    showMsg("#msg", "Booking request sent! BookingId: " + res.bookingId, "ok");
+                },
+                error: function (xhr) {
+                    showMsg("#msg", xhr.responseText || "Booking failed", "err");
+                }
+            });
+        });
+
+
             const payload = {
                 babySitterProfileId: sitterId,
                 bookingDate: $("#date").val(),

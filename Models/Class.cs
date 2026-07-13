@@ -13,8 +13,11 @@ public enum BookingStatus
     Accepted = 2,
     Rejected = 3,
     Confirmed = 4,
-    Completed = 5,
-    Cancelled = 6
+
+    PaymentPending = 5,
+
+    Completed = 6,
+    Cancelled = 7
 }
 
 public enum PaymentStatus
@@ -22,7 +25,8 @@ public enum PaymentStatus
     Pending = 1,
     Paid = 2,
     Failed = 3,
-    Refunded = 4
+    Refunded = 4,
+            Rejected = 5
 }
 
 public enum NotificationType

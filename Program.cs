@@ -26,7 +26,7 @@ builder.Services
         opt.Password.RequireDigit = true;
 
         opt.User.RequireUniqueEmail = true;
-        opt.User.RequireUniqueEmail = true;
+      
     })
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
@@ -85,8 +85,6 @@ builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 
 

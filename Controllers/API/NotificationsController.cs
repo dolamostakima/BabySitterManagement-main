@@ -26,11 +26,22 @@ public class NotificationsController : ControllerBase
         var size = Math.Clamp(take, 1, 200);
 
         var list = await _db.Notifications
-            .AsNoTracking()
-            .Where(n => n.ReceiverUserId == _me.UserId)
-            .OrderByDescending(n => n.CreatedAt)
-            .Take(size)
-            .ToListAsync();
+    .AsNoTracking()
+    .Include(n => n.ReceiverUser)
+    .Where(n => n.ReceiverUserId == _me.UserId)
+    .OrderByDescending(n => n.CreatedAt)
+    .Take(size)
+    .Select(n => new
+    {
+        n.Id,
+        ReceiverName = n.ReceiverUser.FullName,
+        n.Title,
+        n.Message,
+        n.Type,
+        n.IsSent,
+        n.CreatedAt
+    })
+    .ToListAsync();
 
         return Ok(list);
     }

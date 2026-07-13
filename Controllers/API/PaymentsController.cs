@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SmartBabySitter.Services;
 using SmartBabySitter.Services.DTOs;
+using System.Security.Claims;
 
 namespace SmartBabySitter.Controllers.API;
 
@@ -14,6 +15,40 @@ public class PaymentsController : ControllerBase
     public PaymentsController(IPaymentService payments)
     {
         _payments = payments;
+    }
+
+
+    [Authorize]
+    [HttpGet("booking/{bookingId:int}")]
+    public async Task<IActionResult> GetByBooking(int bookingId)
+    {
+        var payment = await _payments.GetPaymentByBookingAsync(bookingId);
+
+        if (payment == null)
+            return NotFound();
+
+        return Ok(payment);
+    }
+    [Authorize(Roles = "Parent")]
+    [HttpGet("parent/history")]
+    public async Task<IActionResult> ParentHistory()
+    {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var result = await _payments.GetParentPaymentHistoryAsync(userId);
+
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "BabySitter")]
+    [HttpGet("sitter/history")]
+    public async Task<IActionResult> SitterHistory()
+    {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var result = await _payments.GetSitterPaymentHistoryAsync(userId);
+
+        return Ok(result);
     }
 
     // Usually Parent/Admin creates payment record (depends on your flow)

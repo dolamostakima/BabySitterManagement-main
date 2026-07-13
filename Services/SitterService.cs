@@ -106,10 +106,12 @@ public class SitterService : ISitterService
         if (!_me.IsAuthenticated) throw new UnauthorizedAccessException();
 
         var profile = await _db.BabySitterProfiles
-            .AsNoTracking()
-            .Include(p => p.BabySitterSkills).ThenInclude(bs => bs.Skill)
-            .Include(p => p.Availabilities)
-            .FirstOrDefaultAsync(p => p.UserId == _me.UserId);
+    .AsNoTracking()
+    .Include(p => p.User)
+    .Include(p => p.BabySitterSkills)
+    .ThenInclude(bs => bs.Skill)
+    .Include(p => p.Availabilities)
+    .FirstOrDefaultAsync(p => p.UserId == _me.UserId);
 
         if (profile == null) return null;
 
@@ -137,16 +139,26 @@ public class SitterService : ISitterService
             .ToList() ?? new List<AvailabilityDto>();
 
         return new MySitterProfileDto(
-            profile.Id,
-            profile.SkillsText ?? "",
-            profile.ExperienceYears,
-            profile.HourlyRate,
-            profile.LocationText ?? "",
-            profile.Latitude,
-            profile.Longitude,
-            skills,
-            avs
-        );
+     profile.Id,
+
+     profile.User.FullName,
+     profile.User.Email ?? "",
+     profile.User.PhoneNo,
+     profile.User.NidNo,
+     profile.User.Gender,
+     profile.User.DateOfBirth,
+     profile.User.Address,
+
+     profile.SkillsText ?? "",
+     profile.ExperienceYears,
+     profile.HourlyRate,
+     profile.LocationText ?? "",
+     profile.Latitude,
+     profile.Longitude,
+
+     skills,
+     avs
+ );
     }
 
     public async Task ApproveSitterAsync(int babySitterProfileId, bool approve)

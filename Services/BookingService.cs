@@ -97,6 +97,12 @@ public class BookingService : IBookingService
 
         await _db.SaveChangesAsync();
 
+        await _notify.CreateInAppAsync(
+    sitter.UserId,
+    "New Booking Request",
+    $"You have received a new booking request #{booking.Id}."
+);
+
         return booking.Id;
     }
 
@@ -239,12 +245,16 @@ public class BookingService : IBookingService
 
     private async Task<Booking> LoadBookingForSitterActionAsync(int bookingId)
     {
-        if (!_me.IsAuthenticated) throw new UnauthorizedAccessException();
+        if (!_me.IsAuthenticated)
+            throw new UnauthorizedAccessException();
 
-        var sitter = await _db.BabySitterProfiles.FirstOrDefaultAsync(x => x.UserId == _me.UserId)
+        var sitter = await _db.BabySitterProfiles
+            .FirstOrDefaultAsync(x => x.UserId == _me.UserId)
             ?? throw new InvalidOperationException("Sitter profile not found.");
 
-        var b = await _db.Bookings.FirstOrDefaultAsync(x => x.Id == bookingId && x.BabySitterProfileId == sitter.Id)
+        var b = await _db.Bookings
+            .Include(x => x.ParentUser)
+            .FirstOrDefaultAsync(x => x.Id == bookingId && x.BabySitterProfileId == sitter.Id)
             ?? throw new KeyNotFoundException("Booking not found.");
 
         return b;

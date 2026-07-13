@@ -19,6 +19,13 @@ public class WebController : Controller
     public IActionResult SitterDetails(int id) => View(model: id);
 
     public IActionResult ParentBookings() => View();
+
+    public IActionResult ParentPayment(int? bookingId)
+    {
+        ViewBag.BookingId = bookingId;
+        return View();
+    }
+
     public IActionResult SitterBookings() => View();
 
     public IActionResult ReviewCreate(int id) => View(id);
@@ -39,4 +46,14 @@ public class WebController : Controller
     public IActionResult SitterReviews() => View();
 
     public IActionResult MyReviews() => View();
+
+    public IActionResult ParentPaymentHistory()
+    {
+        return View();
+    }
+
+    public IActionResult SitterPaymentHistory()
+    {
+        return View();
+    }
 }

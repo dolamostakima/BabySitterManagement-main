@@ -5,111 +5,294 @@
 
 <div class="container mt-4">
 
-    <div class="card shadow p-4">
+    <div class="row">
 
-        <h3 class="mb-4 text-center">
-            Payment
-        </h3>
+        <div class="col-lg-7">
+            <div class="card shadow p-4">
 
-        <form id="paymentForm">
+                <h3 class="mb-4 text-center">
+                    Payment
+                </h3>
 
-            <div class="mb-3">
-                <label class="form-label">Booking</label>
-                <select id="bookingId" class="form-select">
-                    <option value="">-- Select Booking --</option>
-                </select>
-            </div>
+                <form id="paymentForm">
 
-            <div class="card bg-light mb-3 d-none" id="bookingInfo">
+                    <!-- Booking Selection -->
+                    <div class="mb-4" id="bookingSelector">
+                        <label class="form-label fw-bold">Select Booking</label>
 
-                <div class="card-body">
+                        <select id="bookingId" class="form-select form-select-lg">
+                            <option value="">-- Select Booking --</option>
+                        </select>
+                    </div>
 
-                    <div class="row">
+                    <!-- Booking Summary -->
+                    <div class="card shadow-sm border-0 mb-4 d-none" id="bookingInfo">
 
-                        <div class="col-md-6">
-                            <p><strong>Sitter:</strong> <span id="sitterName">-</span></p>
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                Booking Summary
+                            </h5>
                         </div>
 
-                        <div class="col-md-6">
-                            <p><strong>Booking Date:</strong> <span id="bookingDate">-</span></p>
-                        </div>
+                        <div class="card-body">
 
-                        <div class="col-md-6">
-                            <p><strong>Time:</strong> <span id="bookingTime">-</span></p>
-                        </div>
+                            <div class="row">
 
-                        <div class="col-md-6">
-                            <p><strong>Status:</strong> <span id="bookingStatus">-</span></p>
+                                <div class="col-md-6 mb-3">
+                                    <small class="text-muted">Baby Sitter</small>
+                                    <h5 id="sitterName">-</h5>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <small class="text-muted">Booking Date</small>
+                                    <h5 id="bookingDate">-</h5>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <small class="text-muted">Service Time</small>
+                                    <h5 id="bookingTime">-</h5>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <small class="text-muted">Booking Status</small>
+                                    <br />
+                                    <span class="badge bg-success fs-6" id="bookingStatus">
+                                        -
+                                    </span>
+                                </div>
+
+                            </div>
+
                         </div>
 
                     </div>
 
+                    @* </!...payment summary> *@
+
+                    <div class="card shadow-sm border-0 mb-4 d-none" id="paymentSummary">
+
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                Payment Summary
+                            </h5>
+                        </div>
+
+                        <div class="card-body">
+
+                            <div class="row">
+
+                                <div class="col-md-6 mb-3">
+                                    <small class="text-muted">Payment Status</small>
+                                    <h5 id="paymentStatus">-</h5>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <small class="text-muted">Amount</small>
+                                    <h5>৳ <span id="paymentAmount">0</span></h5>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <small class="text-muted">Method</small>
+                                    <h5 id="paymentMethod">-</h5>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <small class="text-muted">Transaction ID</small>
+                                    <h5 id="paymentTrx">-</h5>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <small class="text-muted">Paid On</small>
+                                    <h5 id="paymentPaidAt">-</h5>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Payment Card -->
+                    <div class="card shadow-sm border-0">
+
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                Payment Information
+                            </h5>
+                        </div>
+
+                        <div class="card-body">
+
+                            <!-- Amount -->
+                            <div class="mb-4">
+
+                                <label class="form-label fw-bold">
+                                    Amount
+                                </label>
+
+                                <div class="input-group">
+
+                                    <span class="input-group-text">
+                                        ৳
+                                    </span>
+
+                                    <input id="amount"
+                                           class="form-control form-control-lg"
+                                           readonly />
+
+                                </div>
+
+                            </div>
+
+                            <!-- Payment Method -->
+
+                            <div class="mb-4">
+
+                                <label class="form-label fw-bold">
+
+                                    Choose Payment Method
+
+                                </label>
+
+                                <select id="method"
+                                        class="form-select form-select-lg">
+
+                                    <option value="">
+                                        Select Payment Method
+                                    </option>
+
+                                    <option value="bKash">
+                                        bKash
+                                    </option>
+
+                                    <option value="Nagad">
+                                        Nagad
+                                    </option>
+
+                                    <option value="Card">
+                                        Debit / Credit Card
+                                    </option>
+
+                                    <option value="Cash">
+                                        Cash
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                            <!-- Dynamic Notice -->
+
+                            <div id="paymentHelp"
+                                 class="alert alert-info d-none">
+                            </div>
+
+                            <!-- Transaction -->
+
+                            <div class="mb-4" id="trxBox">
+
+                                <label class="form-label fw-bold">
+                                    Transaction ID
+                                </label>
+
+                                <input id="transactionId"
+                                       class="form-control"
+                                       placeholder="Example: BK78456392" />
+
+                            </div>
+
+                            <!-- Total -->
+
+                            <div class="border rounded p-3 bg-light mb-4">
+
+                                <div class="d-flex justify-content-between align-items-center">
+
+                                    <h5 class="mb-0">
+                                        Total Amount
+                                    </h5>
+
+                                    <h3 class="text-success mb-0">
+                                        ৳ <span id="totalAmount">0</span>
+                                    </h3>
+
+                                </div>
+
+                            </div>
+
+                            <!-- Submit -->
+
+                            <button id="btnSubmitPayment"
+                                    type="submit"
+                                    class="btn btn-success btn-lg w-100">
+
+                                Proceed To Payment
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </form>
+            </div>
+
+        </div>
+
+        <div class="col-lg-5">
+
+            <div class="card shadow p-4">
+
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Payment History</h5>
+                </div>
+
+                <div class="card-body p-0">
+
+                    <table class="table table-hover mb-0" id="tblHistory">
+
+                        <thead>
+
+                            <tr>
+                                <th>BookingId</th>
+                                <th>Sitter</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                                <th>Status</th>
+                              
+                                <th>Created</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody></tbody>
+
+                    </table>
+
                 </div>
 
             </div>
+        </div>
 
-            <div class="mb-3">
-                <label class="form-label">Amount</label>
-                <input type="number"
-                       id="amount"
-                       class="form-control"
-                       readonly />
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Payment Method</label>
-
-                <select id="method" class="form-select">
-
-                    <option value="">Select Payment Method</option>
-
-                    <option value="SSLCommerz">
-                        SSLCommerz (bKash / Nagad / Card)
-                    </option>
-
-                    <option value="Cash">
-                        Cash
-                    </option>
-
-                </select>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Transaction ID</label>
-
-                <input type="text"
-                       id="transactionId"
-                       class="form-control"
-                       placeholder="Enter Transaction ID (if applicable)" />
-            </div>
-
-            <button type="submit"
-                    class="btn btn-primary w-100">
-
-                Proceed To Payment
-
-            </button>
-
-           
-
-        </form>
 
     </div>
 
+    
 </div>
 
 @section Scripts {
 
     <script>
 
+               const selectedBookingId = '@ViewBag.BookingId';
+
         function loadBookings() {
 
-            $.get("/api/my-bookings/parent")
+            $.get("/api/my-bookings/parent/payment")
 
                 .done(function (res) {
 
                     $("#bookingId").html(
-                        '<option value="">Select Booking</option>'
+                        '<option value="">-- Select Booking --</option>'
                     );
 
                     res.items.forEach(function (b) {
@@ -120,21 +303,29 @@
                                 data-date="${b.bookingDate}"
                                 data-start="${b.startTime}"
                                 data-end="${b.endTime}"
-                              data-status="${b.statusName}"
-
-                              $("#bookingStatus").text(op.data("status"));
-
+                                data-status="${b.statusName}"
                                 data-amount="${b.totalAmount}">
 
                                 ${b.sitter.fullName} |
                                 ${b.bookingDate.substring(0,10)} |
-                                ${b.startTime.substring(0,5)} -
+                                ${b.startTime.substring(0,5)}
+                                -
                                 ${b.endTime.substring(0,5)}
 
                             </option>
                         `);
 
                     });
+
+                    // Pay Now থেকে এলে dropdown hide
+                    if (selectedBookingId) {
+
+                        $("#bookingId").val(selectedBookingId);
+
+                        $("#bookingSelector").hide();
+
+                        $("#bookingId").trigger("change");
+                    }
 
                 })
 
@@ -149,47 +340,324 @@
         $(document).ready(function () {
 
             loadBookings();
-
+             loadPaymentHistory();
         });
+
+
+        // Booking Change
 
         $("#bookingId").change(function () {
 
             let op = $(this).find("option:selected");
 
+            // Nothing Selected
+
             if (!op.val()) {
 
                 $("#bookingInfo").addClass("d-none");
-                $("#amount").val("");
-                return;
+                $("#paymentSummary").addClass("d-none");
 
+                $("#amount").val("");
+                $("#totalAmount").text("0");
+
+                $("#btnSubmitPayment")
+                    .prop("disabled", false)
+                    .text("Proceed To Payment");
+
+                $("#method").prop("disabled", false);
+                $("#transactionId").prop("disabled", false);
+
+                return;
             }
+
+            // Booking Summary
 
             $("#bookingInfo").removeClass("d-none");
 
             $("#sitterName").text(op.data("sitter"));
 
-            $("#bookingDate").text(op.data("date").substring(0,10));
-
-            $("#bookingTime").text(
-                op.data("start").substring(0,5) +
-                " - " +
-                op.data("end").substring(0,5)
+            $("#bookingDate").text(
+                op.data("date").substring(0, 10)
             );
 
-            $("#bookingStatus").text(op.data("status"));
+            $("#bookingTime").text(
+                op.data("start").substring(0, 5)
+                + " - " +
+                op.data("end").substring(0, 5)
+            );
+
+            $("#bookingStatus")
+                .text(op.data("status"))
+                .removeClass("bg-success bg-warning bg-secondary");
+
+            if (op.data("status") === "Accepted")
+                $("#bookingStatus").addClass("bg-warning");
+
+            else if (op.data("status") === "Confirmed")
+                $("#bookingStatus").addClass("bg-success");
+
+            else
+                $("#bookingStatus").addClass("bg-secondary");
 
             $("#amount").val(op.data("amount"));
+            $("#totalAmount").text(op.data("amount"));
+
+            // Payment Summary
+
+            $.get(`/api/payments/booking/${op.val()}`)
+
+                .done(function (p) {
+
+                    $("#paymentSummary").removeClass("d-none");
+
+                    $("#paymentStatus").text(p.paymentStatus);
+                    $("#paymentAmount").text(p.amount);
+                    $("#paymentMethod").text(p.method);
+                    $("#paymentTrx").text(p.transactionId || "-");
+
+                    if (p.paidAt)
+                        $("#paymentPaidAt").text(
+                            p.paidAt.substring(0, 10)
+                        );
+                    else
+                        $("#paymentPaidAt").text("-");
+
+
+                    // Button & Inputs State
+
+                    if (p.paymentStatus === "Pending") {
+
+                        $("#btnSubmitPayment")
+                            .prop("disabled", true)
+                            .text("Waiting For Admin Approval");
+
+                        $("#method").prop("disabled", true);
+                        $("#transactionId").prop("disabled", true);
+
+                    }
+                    else if (p.paymentStatus === "Paid") {
+
+                        $("#btnSubmitPayment")
+                            .prop("disabled", true)
+                            .text("Payment Completed");
+
+                        $("#method").prop("disabled", true);
+                        $("#transactionId").prop("disabled", true);
+
+                    }
+                    else {
+
+                        $("#btnSubmitPayment")
+                            .prop("disabled", false)
+                            .text("Proceed To Payment");
+
+                        $("#method").prop("disabled", false);
+                        $("#transactionId").prop("disabled", false);
+
+                    }
+
+                })
+
+                .fail(function () {
+
+                    // No payment yet
+
+                    $("#paymentSummary").addClass("d-none");
+
+                    $("#btnSubmitPayment")
+                        .prop("disabled", false)
+                        .text("Proceed To Payment");
+
+                    $("#method").prop("disabled", false);
+                    $("#transactionId").prop("disabled", false);
+
+                });
 
         });
+
+        // Payment Method Change
+
+        $("#method").change(function () {
+
+            const method = $(this).val();
+
+            $("#paymentHelp").removeClass("d-none");
+
+            $("#trxBox").show();
+
+            if (method === "Cash") {
+
+                $("#paymentHelp")
+                    .removeClass("alert-info")
+                    .addClass("alert-warning")
+                    .html(`
+                        <strong>Cash Payment</strong><br>
+                        Pay the sitter directly after the service is completed.
+                    `);
+
+                $("#trxBox").hide();
+
+            }
+
+            else if (method === "bKash") {
+
+                $("#paymentHelp")
+                    .removeClass("alert-warning")
+                    .addClass("alert-info")
+                    .html(`
+                        <strong>bKash</strong><br>
+                        Send payment to <b>01711-111111</b><br>
+                        Enter the Transaction ID below.
+                    `);
+
+            }
+
+            else if (method === "Nagad") {
+
+                $("#paymentHelp")
+                    .removeClass("alert-warning")
+                    .addClass("alert-info")
+                    .html(`
+                        <strong>Nagad</strong><br>
+                        Send payment to <b>01811-111111</b><br>
+                        Enter the Transaction ID below.
+                    `);
+
+            }
+
+            else if (method === "Card") {
+
+                $("#paymentHelp")
+                    .removeClass("alert-warning")
+                    .addClass("alert-info")
+                    .html(`
+                        <strong>Card Payment</strong><br>
+                       Complete the payment and enter your Transaction / Reference ID.
+                    `);
+
+            }
+
+            else {
+
+                $("#paymentHelp").addClass("d-none");
+
+            }
+
+        });
+
+        // Submit Payment
 
         $("#paymentForm").submit(function (e) {
 
             e.preventDefault();
 
-            alert("Next Step: Payment API");
+            const bookingId = $("#bookingId").val();
+            const amount = $("#amount").val();
+            const method = $("#method").val();
+            const transactionId = $("#transactionId").val();
+
+            if (!bookingId) {
+
+                alert("Please select a booking.");
+
+                return;
+
+            }
+
+            if (!method) {
+
+                alert("Please select a payment method.");
+
+                return;
+
+            }
+
+            const token = (localStorage.getItem("jwt_token") || "")
+                .replace(/^"|"$/g, "");
+
+            $.ajax({
+
+                url: API_BASE + "/api/payments",
+
+                method: "POST",
+
+                contentType: "application/json",
+
+                headers: {
+
+                    Authorization: `Bearer ${token}`
+
+                },
+
+                data: JSON.stringify({
+
+                    bookingId: parseInt(bookingId),
+
+                    amount: parseFloat(amount),
+
+                    method: method,
+
+                    transactionId: transactionId || null
+
+                }),
+
+                success: function () {
+
+                    alert(
+                        "Your payment request has been submitted successfully.\n\nPlease wait for admin approval."
+                    );
+
+                    location.reload();
+
+                },
+
+                error: function (xhr) {
+
+                    alert(xhr.responseText || "Payment failed.");
+
+                }
+
+            });
 
         });
+
+
+
+                async function loadPaymentHistory() {
+
+               const token = (localStorage.getItem("jwt_token") || "")
+        .replace(/^"|"$/g, "");
+
+            const response = await fetch("/api/payments/parent/history", {
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+
+            if (!response.ok)
+                return;
+
+            const data = await response.json();
+
+            let rows = "";
+
+            data.forEach(p => {
+
+                rows += `
+                <tr>
+                    <td>${p.bookingId}</td>
+                    <td>${p.sitterName}</td>
+                    <td>${p.amount}</td>
+                    <td>${p.method}</td>
+                    <td>${p.status}</td>
+                    <td>${new Date(p.createdAt).toLocaleString()}</td>
+                </tr>`;
+            });
+
+            document.querySelector("#tblHistory tbody").innerHTML = rows;
+        }
 
     </script>
 
 }
+
