@@ -126,9 +126,10 @@ public class MyBookingsController : ControllerBase
         var size = Math.Clamp(pageSize, 1, 100);
 
         var q = _db.Bookings
-            .AsNoTracking()
-            .Include(b => b.ParentUser)
-            .Where(b => b.BabySitterProfileId == sitter.Id);
+    .AsNoTracking()
+    .Include(b => b.ParentUser)
+    .Include(b => b.Attendance)
+    .Where(b => b.BabySitterProfileId == sitter.Id);
 
         if (status.HasValue)
             q = q.Where(b => b.Status == status.Value);
@@ -140,26 +141,35 @@ public class MyBookingsController : ControllerBase
         var items = await q
             .Skip((p - 1) * size)
             .Take(size)
-            .Select(b => new
-            {
-                b.Id,
-                b.BookingDate,
-                b.StartTime,
-                b.EndTime,
-                b.Status,
-                StatusName = b.Status.ToString(),
-               
-                b.TotalAmount,
-                b.CreatedAt,
-                b.ServiceAddressText,
-                Parent = new
-                {
-                    b.ParentUserId,
-                    b.ParentUser.FullName,
-                    b.ParentUser.Email,
-                    b.ParentUser.PhoneNumber
-                }
-            })
+           .Select(b => new
+           {
+               b.Id,
+               b.BookingDate,
+               b.StartTime,
+               b.EndTime,
+               b.Status,
+               StatusName = b.Status.ToString(),
+               b.TotalAmount,
+               b.CreatedAt,
+               b.ServiceAddressText,
+
+               Attendance = b.Attendance == null
+        ? null
+        : new
+        {
+            b.Attendance.Id,
+            b.Attendance.CheckInTime,
+            b.Attendance.CheckOutTime
+        },
+
+               Parent = new
+               {
+                   b.ParentUserId,
+                   b.ParentUser.FullName,
+                   b.ParentUser.Email,
+                   b.ParentUser.PhoneNumber
+               }
+           })
             .ToListAsync();
 
         return Ok(new { total, page = p, pageSize = size, items });

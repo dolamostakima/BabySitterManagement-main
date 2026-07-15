@@ -14,6 +14,9 @@
             <a href="/Web/SitterAvailability" class="btn btn-outline-primary">Availability</a>
             <a href="/Web/SitterProfile" class="btn btn-outline-secondary">My Profile</a>
             <a href="/Web/SitterReviews" class="btn btn-warning">My Reviews</a>
+            <a href="/Web/SitterAttendance" class="btn btn-success">
+                Attendance History
+            </a>
         </div>
     </div>
 
@@ -140,42 +143,166 @@
             }
         }
 
-        function actionButtons(b) {
+               function actionButtons(b) {
+
             const s = normalizeStatus(b.status);
 
             if (s === "pending") {
                 return `
-                            <button class="btn btn-sm btn-success me-1" onclick="act(${b.id}, 'accept')">Accept</button>
-                            <button class="btn btn-sm btn-danger me-1" onclick="act(${b.id}, 'reject')">Reject</button>
-                        `;
+                    <button class="btn btn-sm btn-success me-1"
+                            onclick="act(${b.id}, 'accept')">
+                        Accept
+                    </button>
+
+                    <button class="btn btn-sm btn-danger"
+                            onclick="act(${b.id}, 'reject')">
+                        Reject
+                    </button>
+                `;
             }
 
             if (s === "accepted") {
                 return `
-                            <button class="btn btn-sm btn-primary me-1" onclick="act(${b.id}, 'confirm')">Confirm</button>
-                        `;
+                    <span class="badge bg-info">
+                        Waiting For Payment
+                    </span>
+                `;
             }
 
-            if (s === "confirmed") {
+                    if (s === "confirmed") {
+
+            const attendance = b.attendance || b.Attendance;
+
+            if (!attendance) {
+
                 return `
-                            <button class="btn btn-sm btn-secondary me-1" onclick="act(${b.id}, 'complete')">Complete</button>
-                        `;
+                    <button class="btn btn-sm btn-primary"
+                            onclick="checkIn(${b.id})">
+                        Check In
+                    </button>
+                `;
             }
+
+            if (!attendance.CheckOutTime && !attendance.checkOutTime) {
+
+                return `
+                    <button class="btn btn-sm btn-danger"
+                            onclick="checkOut(${b.id})">
+                        Check Out
+                    </button>
+                `;
+            }
+
+            return `
+                <span class="badge bg-success">
+                    Service Completed
+                </span>
+            `;
+        }
+
 
             if (s === "completed") {
-                return `<span class="text-success fw-semibold">Done</span>`;
+                return `
+                    <span class="text-success fw-bold">
+                        Completed
+                    </span>
+                `;
             }
 
-            if (s === "rejected") {
-                return `<span class="text-danger fw-semibold">Rejected</span>`;
-            }
+            if (s === "rejected")
+                return `<span class="text-danger">Rejected</span>`;
 
-            if (s === "cancelled") {
-                return `<span class="text-muted fw-semibold">Cancelled</span>`;
-            }
+            if (s === "cancelled")
+                return `<span class="text-muted">Cancelled</span>`;
 
-            return `<span class="text-muted">No action</span>`;
+            return "-";
         }
+
+                       function checkIn(id){
+
+            if(!navigator.geolocation){
+
+                setMsg("Geolocation is not supported.","err");
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(function(pos){
+
+                $.ajax({
+
+                    url: API_BASE + "/api/attendance/check-in",
+
+                    method:"POST",
+
+                    headers:authHeaders(),
+
+                    contentType:"application/json",
+
+                    data:JSON.stringify({
+
+                        bookingId:id,
+
+                        latitude:pos.coords.latitude,
+
+                        longitude:pos.coords.longitude,
+
+                        locationText:"Current Location"
+
+                    }),
+
+                    success:function(){
+
+                        setMsg("Checked In successfully.","ok");
+
+                        load();
+
+                    },
+
+                    error:function(xhr){
+
+                        setMsg(xhr.responseText || "Check In failed","err");
+
+                    }
+
+                });
+
+            },
+            function(){
+
+                setMsg("Location permission denied.","err");
+
+            });
+
+        }
+
+                 function checkOut(id){
+
+            $.ajax({
+
+                url: API_BASE + "/api/attendance/" + id + "/check-out",
+
+                method: "POST",
+
+                headers: authHeaders(),
+
+                success:function(){
+
+                    setMsg("Checked Out successfully.","ok");
+
+                    load();
+
+                },
+
+                error:function(xhr){
+
+                    setMsg(xhr.responseText || "Check Out failed","err");
+
+                }
+
+            });
+
+        }
+
 
         function load() {
             if (!token) {

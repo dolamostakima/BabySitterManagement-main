@@ -31,7 +31,23 @@
                             class="btn btn-primary w-100">
                         Load
                     </button>
+
+                    
+
                 </div>
+
+                <div class="col-md-2">
+                   
+
+                    <a href="/Web/ParentAttendance"
+                       class="btn btn-success">
+                        Attendance History
+                    </a>
+
+                </div>
+
+               
+
             </div>
         </div>
     </div>
@@ -560,7 +576,7 @@
              * API endpoint আপনার Controller route অনুযায়ী পরিবর্তন করতে পারেন।
              */
             $.ajax({
-                url: `${API_ROOT}/api/my-bookings/parent/${id}/cancel`,
+                url: `${API_ROOT}/api/bookings/${id}/cancel`,
                 method: "POST",
                 headers: authHeaders(),
                 contentType: "application/json; charset=utf-8",

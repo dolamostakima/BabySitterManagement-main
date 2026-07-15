@@ -56,4 +56,15 @@ public class WebController : Controller
     {
         return View();
     }
+
+    public IActionResult SitterAttendance()
+    {
+        return View();
+    }
+
+    public IActionResult ParentAttendance()
+    {
+        return View();
+    }
+
 }

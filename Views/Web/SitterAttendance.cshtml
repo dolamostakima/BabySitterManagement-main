@@ -1,0 +1,118 @@
+﻿@{
+    ViewData["Title"] = "Attendance History";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between mb-3">
+
+        <h3>Attendance History</h3>
+
+        <a href="/Web/SitterBookings" class="btn btn-secondary">
+            Back
+        </a>
+
+    </div>
+
+    <div id="msg"></div>
+
+    <div class="card">
+
+        <div class="card-body">
+
+            <table class="table table-bordered">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Booking</th>
+                        <th>Check In</th>
+                        <th>Check Out</th>
+                        <th>Location</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="tbody"></tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+
+    <script>
+
+        const token=(localStorage.getItem("jwt_token")||"").replace(/^"|"$/g,"");
+
+        $.ajax({
+
+            url:API_BASE+"/api/attendance/my-history",
+
+            headers:{
+                Authorization:"Bearer "+token
+            },
+
+            success:function(res){
+
+                let html="";
+
+                res.forEach(x=>{
+
+                    html+=`
+
+                    <tr>
+
+                        <td>${x.bookingId}</td>
+
+                        <td>${x.checkInTime??"-"}</td>
+
+                        <td>${x.checkOutTime??"-"}</td>
+                                <td>
+
+            ${x.locationText ?? "-"}
+
+            <br/>
+
+            ${
+                x.latitude && x.longitude
+                ? `<a href="https://www.google.com/maps?q=${x.latitude},${x.longitude}"
+                      target="_blank"
+                      class="btn btn-sm btn-outline-primary mt-1">
+                        View Map
+                   </a>`
+                : `<span class="text-muted">No Location</span>`
+            }
+
+        </td>
+
+                    </tr>
+
+                    `;
+
+                });
+
+                $("#tbody").html(html);
+
+            },
+
+            error:function(){
+
+                $("#msg").html(`<div class="alert alert-danger">
+                    Load failed
+                </div>`);
+
+            }
+
+        });
+
+    </script>
+
+}

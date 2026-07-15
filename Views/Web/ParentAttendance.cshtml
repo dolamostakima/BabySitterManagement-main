@@ -1,0 +1,121 @@
+﻿@{
+    ViewData["Title"] = "Attendance History";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between mb-3">
+        <h3>Attendance History</h3>
+
+        <a href="/Web/ParentBookings" class="btn btn-secondary">
+            Back
+        </a>
+    </div>
+
+    <div id="list"></div>
+
+</div>
+
+@section Scripts {
+
+    <script>
+
+        const token=(localStorage.getItem("jwt_token")||"").replace(/^"|"$/g,"");
+
+        function authHeaders(){
+            return token?{Authorization:`Bearer ${token}`}:{};
+        }
+
+        $.ajax({
+
+            url:API_BASE+"/api/attendance/parent-history",
+
+            method:"GET",
+
+            headers:authHeaders(),
+
+            success:function(items){
+
+                if(items.length==0){
+
+                    $("#list").html("<div class='alert alert-warning'>No attendance history.</div>");
+
+                    return;
+                }
+
+                let html=`
+                <table class="table table-bordered table-hover">
+
+                <thead class="table-light">
+
+                <tr>
+
+                <th>Booking</th>
+
+                <th>Check In</th>
+
+                <th>Check Out</th>
+
+                <th>Location</th>
+
+                </tr>
+
+                </thead>
+
+                <tbody>
+                `;
+
+                items.forEach(x=>{
+
+                    html+=`
+
+                    <tr>
+
+                    <td>${x.bookingId}</td>
+
+                    <td>${x.checkInTime??"-"}</td>
+
+                    <td>${x.checkOutTime??"-"}</td>
+
+                    <td>
+
+                        ${x.locationText??"-"}
+
+                        <br>
+
+                        ${
+                            x.latitude && x.longitude
+                            ? `<a class="btn btn-sm btn-outline-primary mt-1"
+                                 target="_blank"
+                                 href="https://www.google.com/maps?q=${x.latitude},${x.longitude}">
+                                 View Map
+                               </a>`
+                            : ""
+                        }
+
+                    </td>
+
+                    </tr>
+
+                    `;
+
+                });
+
+                html+="</tbody></table>";
+
+                $("#list").html(html);
+
+            },
+
+            error:function(){
+
+                $("#list").html("<div class='alert alert-danger'>Load failed.</div>");
+
+            }
+
+        });
+
+    </script>
+
+}
